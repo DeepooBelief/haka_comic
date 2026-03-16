@@ -17,7 +17,6 @@ dependencies:
   dio: ^5.9.0
   crypto: ^3.0.6
   json_annotation: ^4.9.0
-  # cached_network_image: ^3.4.1
   scrollable_positioned_list:
     git:
       url: https://github.com/raoxwup/scrollable_positioned_list.git
@@ -45,9 +44,6 @@ dependencies:
   vector_math: ^2.2.0
   volume_button_override: ^0.0.1
   go_transitions: ^0.8.3
-  # windows平台构建时tree shake对第三方图标不生效 导致构建产物体积过大
-  # https://github.com/flutter/flutter/issues/157216
-  # material_symbols_icons: ^4.2892.0
   rust_lib_haka_comic:
     path: rust_builder
   flutter_rust_bridge: ^2.11.1
@@ -61,6 +57,7 @@ dependencies:
   extended_image: ^10.0.1
   flutter_displaymode: ^0.7.0
   logger: ^2.6.2
+  cached_network_image_ce: ^4.6.3
 
 dev_dependencies:
   flutter_test:
@@ -69,10 +66,6 @@ dev_dependencies:
   build_runner: ^2.10.4
   json_serializable: ^6.11.1
   flutter_launcher_icons: ^0.14.4
-  # flutter_launcher_icons:
-  #   git:
-  #     url: https://github.com/devmil/flutter_launcher_icons.git
-  #     ref: f23536ec17ac211c06de78fd059a5e0404dadfb4
   package_rename: ^1.10.1
   freezed: ^3.2.3
   integration_test:

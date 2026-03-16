@@ -27,10 +27,14 @@ import 'package:permission_handler/permission_handler.dart';
 
 enum ExportFileType { pdf, zip }
 
+enum _DownloadExportPlatform { android, desktop, ios }
+
 typedef _DownloadTaskAction = ({
   IconData icon,
   void Function(String taskId) action,
 });
+
+typedef _DownloadExportItem = ({String fileStem, String sourceFolderPath});
 
 _DownloadTaskAction _resolveDownloadTaskAction(DownloadTaskStatus status) {
   return switch (status) {
@@ -118,9 +122,199 @@ class _DownloadsState extends State<Downloads> {
     }
   }
 
-  Future<void> exportTasksForDesktop({required ExportFileType type}) async {
+  _DownloadExportPlatform get _exportPlatform {
+    if (isAndroid) {
+      return _DownloadExportPlatform.android;
+    }
+
+    if (isDesktop) {
+      return _DownloadExportPlatform.desktop;
+    }
+
+    return _DownloadExportPlatform.ios;
+  }
+
+  bool get _canExportSelectedTasks {
+    return _selectedTaskIds.isNotEmpty && isAllCompleted;
+  }
+
+  Future<List<_DownloadExportItem>> _getSelectedExportItems() async {
+    final downloadPath = await getDownloadDirectory();
+    return [
+      for (final task in _selectedTasks)
+        (
+          fileStem: task.comic.title.legalized,
+          sourceFolderPath: p.join(downloadPath, task.comic.title.legalized),
+        ),
+    ];
+  }
+
+  Future<Directory> _createCleanExportTempDirectory() async {
+    final cacheDir = await getApplicationCacheDirectory();
+    final tempDir = Directory(p.join(cacheDir.path, 'temp'));
+
+    if (await tempDir.exists()) {
+      await tempDir.delete(recursive: true);
+    }
+
+    await tempDir.create(recursive: true);
+    return tempDir;
+  }
+
+  Future<void> _buildExportFile({
+    required String sourceFolderPath,
+    required String outputPath,
+    required ExportFileType type,
+  }) async {
+    switch (type) {
+      case ExportFileType.pdf:
+        await exportPdf(
+          sourceFolderPath: sourceFolderPath,
+          outputPdfPath: outputPath,
+        );
+      case ExportFileType.zip:
+        await compress(
+          sourceFolderPath: sourceFolderPath,
+          outputZipPath: outputPath,
+          compressionMethod: CompressionMethod.stored,
+        );
+    }
+  }
+
+  Future<String> _buildIosZipExportPath(
+    List<_DownloadExportItem> exportItems,
+  ) async {
+    final tempDir = await _createCleanExportTempDirectory();
+    final zipPath = p.join(tempDir.path, 'comics.zip');
+
+    final zipper = await createZipper(
+      zipPath: zipPath,
+      compressionMethod: CompressionMethod.stored,
+    );
+
+    for (final item in exportItems) {
+      await zipper.addDirectory(dirPath: item.sourceFolderPath);
+    }
+
+    await zipper.close();
+    return zipPath;
+  }
+
+  Future<String> _buildIosPdfExportPath(
+    List<_DownloadExportItem> exportItems,
+  ) async {
+    final tempDir = await _createCleanExportTempDirectory();
+
+    if (exportItems.length == 1) {
+      final item = exportItems.first;
+      final pdfPath = p.join(tempDir.path, '${item.fileStem}.pdf');
+      await _buildExportFile(
+        sourceFolderPath: item.sourceFolderPath,
+        outputPath: pdfPath,
+        type: ExportFileType.pdf,
+      );
+      return pdfPath;
+    }
+
+    final zipPath = p.join(tempDir.path, 'comics.zip');
+    final zipper = await createZipper(
+      zipPath: zipPath,
+      compressionMethod: CompressionMethod.stored,
+    );
+
+    for (final item in exportItems) {
+      final pdfPath = p.join(tempDir.path, '${item.fileStem}.pdf');
+      await _buildExportFile(
+        sourceFolderPath: item.sourceFolderPath,
+        outputPath: pdfPath,
+        type: ExportFileType.pdf,
+      );
+      await zipper.addFile(filePath: pdfPath);
+    }
+
+    await zipper.close();
+    return zipPath;
+  }
+
+  Future<String> _buildIosExportPath({
+    required ExportFileType type,
+    required List<_DownloadExportItem> exportItems,
+  }) {
+    return switch (type) {
+      ExportFileType.pdf => _buildIosPdfExportPath(exportItems),
+      ExportFileType.zip => _buildIosZipExportPath(exportItems),
+    };
+  }
+
+  Future<bool> _ensureAndroidExportPermission() async {
+    final version = await AndroidDownloadSaver.getAndroidVersion();
+
+    if (version > 28) {
+      return true;
+    }
+
+    final status = await Permission.storage.request();
+    if (status.isGranted) {
+      return true;
+    }
+
+    if (status.isPermanentlyDenied) {
+      if (!mounted) {
+        return false;
+      }
+
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('缺少权限'),
+            content: const Text('请在设置中开启存储权限后重试'),
+            actions: [
+              TextButton(
+                onPressed: () => context.pop(),
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  context.pop();
+                },
+                child: const Text('打开设置'),
+              ),
+            ],
+          );
+        },
+      );
+      return false;
+    }
+
+    Toast.show(message: "没有必要的存储权限");
+    return false;
+  }
+
+  void _showExportLoader() {
+    if (mounted) {
+      Loader.show(context);
+    }
+  }
+
+  Future<void> _runExportTask(Future<void> Function() action) async {
     try {
-      String? selectedDirectoryPath = await FilePicker.platform
+      await action();
+    } catch (e, st) {
+      Log.e("export comic failed", error: e, stackTrace: st);
+      Toast.show(message: "导出失败");
+    } finally {
+      if (mounted) {
+        Loader.hide(context);
+      }
+      close();
+    }
+  }
+
+  Future<void> _exportTasksForDesktop({required ExportFileType type}) async {
+    await _runExportTask(() async {
+      final selectedDirectoryPath = await FilePicker.platform
           .getDirectoryPath();
 
       if (selectedDirectoryPath == null) {
@@ -128,213 +322,61 @@ class _DownloadsState extends State<Downloads> {
         return;
       }
 
-      if (mounted) {
-        Loader.show(context);
-      }
+      _showExportLoader();
+      final exportItems = await _getSelectedExportItems();
 
-      final downloadPath = await getDownloadDirectory();
-
-      for (var task in _selectedTasks) {
-        final sourceDirPath = p.join(downloadPath, task.comic.title.legalized);
-
+      for (final item in exportItems) {
         final destPath = p.join(
           selectedDirectoryPath,
-          '${task.comic.title.legalized}.${type.name}',
+          '${item.fileStem}.${type.name}',
         );
 
-        switch (type) {
-          case ExportFileType.pdf:
-            await exportPdf(
-              sourceFolderPath: sourceDirPath,
-              outputPdfPath: destPath,
-            );
-          case ExportFileType.zip:
-            await compress(
-              sourceFolderPath: sourceDirPath,
-              outputZipPath: destPath,
-              compressionMethod: CompressionMethod.stored,
-            );
-        }
+        await _buildExportFile(
+          sourceFolderPath: item.sourceFolderPath,
+          outputPath: destPath,
+          type: type,
+        );
       }
 
       Toast.show(message: "导出成功");
-    } catch (e) {
-      Log.e("export comic failed", error: e);
-      Toast.show(message: "导出失败");
-    } finally {
-      if (mounted) {
-        Loader.hide(context);
-      }
-      close();
-    }
+    });
   }
 
-  Future<void> exportTasksForIos({required ExportFileType type}) async {
-    Future<String> exportZipFile() async {
-      final cacheDir = await getApplicationCacheDirectory();
+  Future<void> _exportTasksForIos({required ExportFileType type}) async {
+    await _runExportTask(() async {
+      _showExportLoader();
 
-      final tempDir = Directory(p.join(cacheDir.path, 'temp'));
-
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
-
-      await tempDir.create(recursive: true);
-
-      final zipPath = p.join(tempDir.path, 'comics.zip');
-
-      final zipper = await createZipper(
-        zipPath: zipPath,
-        compressionMethod: CompressionMethod.stored,
+      final exportItems = await _getSelectedExportItems();
+      final path = await _buildIosExportPath(
+        type: type,
+        exportItems: exportItems,
       );
-
-      final downloadPath = await getDownloadDirectory();
-
-      for (var task in _selectedTasks) {
-        final sourcePath = p.join(downloadPath, task.comic.title.legalized);
-        await zipper.addDirectory(dirPath: sourcePath);
-      }
-
-      await zipper.close();
-
-      return zipPath;
-    }
-
-    Future<String> exportPdfFile() async {
-      final cacheDir = await getApplicationCacheDirectory();
-
-      final tempDir = Directory(p.join(cacheDir.path, 'temp'));
-
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
-
-      await tempDir.create(recursive: true);
-
-      final downloadPath = await getDownloadDirectory();
-
-      if (_selectedTasks.length == 1) {
-        final title = _selectedTasks.first.comic.title.legalized;
-        final sourcePath = p.join(downloadPath, title);
-        final destPath = p.join(tempDir.path, '$title.pdf');
-        await exportPdf(sourceFolderPath: sourcePath, outputPdfPath: destPath);
-        return destPath;
-      }
-
-      final zipPath = p.join(tempDir.path, 'comics.zip');
-
-      final zipper = await createZipper(
-        zipPath: zipPath,
-        compressionMethod: CompressionMethod.stored,
-      );
-
-      for (var task in _selectedTasks) {
-        final title = task.comic.title.legalized;
-        final sourcePath = p.join(downloadPath, title);
-        final destPath = p.join(tempDir.path, '$title.pdf');
-        await exportPdf(sourceFolderPath: sourcePath, outputPdfPath: destPath);
-        await zipper.addFile(filePath: destPath);
-      }
-
-      await zipper.close();
-
-      return zipPath;
-    }
-
-    try {
-      if (mounted) {
-        Loader.show(context);
-      }
-
-      final future = switch (type) {
-        ExportFileType.pdf => exportPdfFile(),
-        ExportFileType.zip => exportZipFile(),
-      };
-
-      final path = await future;
 
       final success = await SaveToFolderIos.copy(path);
-      if (success) {
-        Toast.show(message: "导出成功");
-      } else {
-        Toast.show(message: "导出失败");
-      }
-    } catch (e) {
-      Log.e("export comic failed", error: e);
-      Toast.show(message: "导出失败");
-    } finally {
-      if (mounted) {
-        Loader.hide(context);
-      }
-      close();
-    }
+      Toast.show(message: success ? "导出成功" : "导出失败");
+    });
   }
 
-  Future<void> exportTasksForAndroid({required ExportFileType type}) async {
-    final cacheDir = await getApplicationCacheDirectory();
-    try {
-      final version = await AndroidDownloadSaver.getAndroidVersion();
-
-      if (version <= 28) {
-        final status = await Permission.storage.request();
-        if (!status.isGranted) {
-          if (status.isPermanentlyDenied) {
-            if (!mounted) return;
-            await showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: const Text('缺少权限'),
-                  content: const Text('请在设置中开启存储权限后重试'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => context.pop(),
-                      child: const Text('取消'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        openAppSettings();
-                        context.pop();
-                      },
-                      child: const Text('打开设置'),
-                    ),
-                  ],
-                );
-              },
-            );
-            return;
-          }
-          Toast.show(message: "没有必要的存储权限");
-          return;
-        }
+  Future<void> _exportTasksForAndroid({required ExportFileType type}) async {
+    await _runExportTask(() async {
+      if (!await _ensureAndroidExportPermission()) {
+        return;
       }
 
-      if (mounted) {
-        Loader.show(context);
-      }
+      _showExportLoader();
 
-      final downloadPath = await getDownloadDirectory();
+      final cacheDir = await getApplicationCacheDirectory();
+      final exportItems = await _getSelectedExportItems();
 
-      for (var task in _selectedTasks) {
-        final sourcePath = p.join(downloadPath, task.comic.title.legalized);
-
-        final fileName = '${task.comic.title.legalized}.${type.name}';
-
+      for (final item in exportItems) {
+        final fileName = '${item.fileStem}.${type.name}';
         final destPath = p.join(cacheDir.path, fileName);
 
-        switch (type) {
-          case ExportFileType.pdf:
-            await exportPdf(
-              sourceFolderPath: sourcePath,
-              outputPdfPath: destPath,
-            );
-          case ExportFileType.zip:
-            await compress(
-              sourceFolderPath: sourcePath,
-              outputZipPath: destPath,
-              compressionMethod: CompressionMethod.stored,
-            );
-        }
+        await _buildExportFile(
+          sourceFolderPath: item.sourceFolderPath,
+          outputPath: destPath,
+          type: type,
+        );
 
         await AndroidDownloadSaver.saveToDownloads(
           filePath: destPath,
@@ -343,27 +385,23 @@ class _DownloadsState extends State<Downloads> {
       }
 
       Toast.show(message: "导出成功");
-    } catch (e) {
-      Log.e("export comic failed", error: e);
-      Toast.show(message: "导出失败");
-    } finally {
-      if (mounted) {
-        Loader.hide(context);
-      }
-      close();
-    }
+    });
+  }
+
+  Future<void> _exportSelectedTasks({required ExportFileType type}) {
+    return switch (_exportPlatform) {
+      _DownloadExportPlatform.android => _exportTasksForAndroid(type: type),
+      _DownloadExportPlatform.desktop => _exportTasksForDesktop(type: type),
+      _DownloadExportPlatform.ios => _exportTasksForIos(type: type),
+    };
   }
 
   VoidCallback? exportFile({required ExportFileType type}) {
-    final isCanPress = (_selectedTaskIds.isEmpty || !isAllCompleted);
-    if (isCanPress) {
+    if (!_canExportSelectedTasks) {
       return null;
     }
-    return isAndroid
-        ? () => exportTasksForAndroid(type: type)
-        : isDesktop
-        ? () => exportTasksForDesktop(type: type)
-        : () => exportTasksForIos(type: type);
+
+    return () => _exportSelectedTasks(type: type);
   }
 
   void close() {
