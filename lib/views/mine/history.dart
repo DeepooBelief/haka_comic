@@ -12,31 +12,6 @@ import 'package:haka_comic/views/comics/common_tmi_list.dart';
 import 'package:haka_comic/widgets/error_page.dart';
 import 'package:haka_comic/widgets/toast.dart';
 
-class ComicsWithTotal<T> {
-  final List<T> comics;
-  final int total;
-  final int page;
-
-  const ComicsWithTotal({
-    required this.comics,
-    required this.total,
-    required this.page,
-  });
-
-  static ComicsWithTotal<HistoryDoc> empty = const ComicsWithTotal(
-    comics: [],
-    total: 0,
-    page: 0,
-  );
-}
-
-Future<ComicsWithTotal<HistoryDoc>> getComicsWithTotal(int page) async {
-  final helper = HistoryHelper();
-  final total = await helper.count();
-  final comics = await helper.query(page);
-  return ComicsWithTotal(comics: comics, total: total, page: page);
-}
-
 class History extends StatefulWidget {
   const History({super.key});
 
@@ -50,7 +25,7 @@ class _HistoryState extends State<History> with RequestMixin, PaginationMixin {
   @override
   bool get pagination => false;
 
-  late final _handler = getComicsWithTotal.useRequest(
+  late final _handler = _helper.queryPage.useRequest(
     defaultParams: 1,
     onSuccess: (data, _) {
       Log.i('Get history success', data.toString());
@@ -60,9 +35,9 @@ class _HistoryState extends State<History> with RequestMixin, PaginationMixin {
     },
     reducer: (prev, current) {
       if (prev == null) return current;
-      return ComicsWithTotal(
+      return HistoryPageResult(
         comics: [...prev.comics, ...current.comics],
-        total: current.total,
+        hasMore: current.hasMore,
         page: current.page,
       );
     },
@@ -76,11 +51,11 @@ class _HistoryState extends State<History> with RequestMixin, PaginationMixin {
     if (event == null) return;
     switch (event) {
       case DeleteAllEvent():
-        _update();
+      case DeleteEvent():
       case InsertEvent(comic: final _):
         _update();
-      default:
-        Log.i('Unknown event', event.toString());
+      case RestoreEvent():
+        _update();
     }
   }
 
@@ -98,15 +73,14 @@ class _HistoryState extends State<History> with RequestMixin, PaginationMixin {
 
   void _update() {
     scrollController.jumpTo(0.0);
-    _handler.mutate(ComicsWithTotal.empty);
+    _handler.mutate(HistoryPageResult.empty);
     _handler.run(1);
   }
 
   @override
   Future<void> loadMore() async {
-    final total = _handler.state.data?.total ?? 0;
-    final length = _handler.state.data?.comics.length ?? 0;
-    if (length >= total) return;
+    final hasMore = _handler.state.data?.hasMore ?? false;
+    if (!hasMore) return;
     final page = _handler.state.data?.page ?? 1;
     await _handler.run(page + 1);
   }
@@ -198,10 +172,13 @@ class _HistoryState extends State<History> with RequestMixin, PaginationMixin {
                 .where((c) => c.uid != item.uid)
                 .toList() ??
             [];
-        final total = _handler.state.data?.total ?? 0;
         final page = comics.isEmpty ? 1 : _handler.state.data?.page ?? 1;
         _handler.mutate(
-          ComicsWithTotal(comics: comics, total: total - 1, page: page),
+          HistoryPageResult(
+            comics: comics,
+            hasMore: _handler.state.data?.hasMore ?? false,
+            page: page,
+          ),
         );
         break;
     }
