@@ -19,6 +19,7 @@ import 'package:haka_comic/startup_prepare.dart';
 import 'package:haka_comic/utils/extension.dart';
 import 'package:haka_comic/views/about/about.dart';
 import 'package:haka_comic/widgets/button.dart';
+import 'package:haka_comic/widgets/global_mouse_back_listener.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:local_auth/local_auth.dart';
@@ -229,33 +230,38 @@ class _AppState extends State<App> with WindowListener {
           debugShowCheckedModeBanner: false,
           scaffoldMessengerKey: scaffoldMessengerKey,
           builder: (context, child) {
-            return Stack(
-              children: [
-                Positioned.fill(child: _SystemUiProvider(child!)),
-                if (AppConf().needAuth && !isAuthorized)
-                  Positioned.fill(
-                    child: Material(
-                      child: Container(
-                        color: context.colorScheme.surface,
-                        child: Column(
-                          spacing: 20,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              '需要进行身份验证以访问应用程序',
-                              style: TextStyle(fontSize: 18),
-                            ),
-                            Button.filled(
-                              isLoading: isVerifying,
-                              onPressed: auth,
-                              child: const Text('验证'),
-                            ),
-                          ],
+            final canUseGlobalBack = !AppConf().needAuth || isAuthorized;
+            return GlobalMouseBackListener(
+              navigatorKey: navigatorKey,
+              enabled: canUseGlobalBack,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: _SystemUiProvider(child!)),
+                  if (AppConf().needAuth && !isAuthorized)
+                    Positioned.fill(
+                      child: Material(
+                        child: Container(
+                          color: context.colorScheme.surface,
+                          child: Column(
+                            spacing: 20,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                '需要进行身份验证以访问应用程序',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                              Button.filled(
+                                isLoading: isVerifying,
+                                onPressed: auth,
+                                child: const Text('验证'),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             );
           },
         );
