@@ -101,6 +101,9 @@ class AppConf {
   /// 是否启用翻页动画
   bool _enablePageAnimation = true;
 
+  /// 预加载的图片数量
+  int _preloadImageCount = 4;
+
   bool get isLogged => _token.isNotEmpty;
   bool get hasAccount => _email.isNotEmpty && _password.isNotEmpty;
 
@@ -153,6 +156,8 @@ class AppConf {
     instance._enableGesture = prefsWithCache.getBool('enableGesture') ?? true;
     instance._enablePageAnimation =
         prefsWithCache.getBool('enablePageAnimation') ?? true;
+    instance._preloadImageCount =
+        prefsWithCache.getInt('preloadImageCount') ?? 4;
   }
 
   set email(String value) {
@@ -340,6 +345,11 @@ class AppConf {
     SharedPreferencesUtil.prefsWithCache.setBool('enablePageAnimation', value);
   }
 
+  set preloadImageCount(int value) {
+    _preloadImageCount = value;
+    SharedPreferencesUtil.prefsWithCache.setInt('preloadImageCount', value);
+  }
+
   String get email => _email;
   String get password => _password;
   String get token => _token;
@@ -375,6 +385,7 @@ class AppConf {
   bool get showPageNumbers => _showPageNumbers;
   bool get enableGesture => _enableGesture;
   bool get enablePageAnimation => _enablePageAnimation;
+  int get preloadImageCount => _preloadImageCount;
 
   /// 清除token
   void clearAuth() {

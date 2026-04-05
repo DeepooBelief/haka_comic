@@ -361,6 +361,7 @@ class ReaderProvider extends RequestProvider {
       urlResolver: (image) => image.url,
       context: context,
       type: type,
+      maxPreloadCount: AppConf().preloadImageCount,
     );
   }
 

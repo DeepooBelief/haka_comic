@@ -21,6 +21,7 @@ class _ReaderSettingsState extends State<ReaderSettings> {
   final horizontalCenterFraction = ValueNotifier(
     AppConf().horizontalCenterFraction,
   );
+  final preloadImageCount = ValueNotifier(AppConf().preloadImageCount);
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +198,36 @@ class _ReaderSettingsState extends State<ReaderSettings> {
                   },
                   title: const Text('音量键翻页'),
                   subtitle: const Text('启用时，可以使用音量键翻页。'),
+                );
+              },
+            ),
+            ValueListenableBuilder(
+              valueListenable: preloadImageCount,
+              builder: (context, value, child) {
+                return ListTile(
+                  title: const Text('预加载图片数量'),
+                  trailing: Text('$value张'),
+                  subtitle: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 5,
+                    children: [
+                      const Text('网络较差时可以适当调大，但可能有一定性能负担。'),
+                      Slider(
+                        padding: const .symmetric(horizontal: 0.0),
+                        value: value.toDouble(),
+                        min: 2,
+                        max: 8,
+                        divisions: 6,
+                        onChanged: (value) {
+                          final count = value.round();
+                          preloadImageCount.value = count;
+                          AppConf().preloadImageCount = count;
+                          context.reader.preloadController.maxPreloadCount =
+                              count;
+                        },
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
