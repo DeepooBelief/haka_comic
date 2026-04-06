@@ -9,9 +9,15 @@ const kBottomBarHeight = 105.0;
 const kBottomBarBottom = 15.0;
 
 /// 底部工具栏
-class ReaderBottom extends StatelessWidget {
+class ReaderBottom extends StatefulWidget {
   const ReaderBottom({super.key});
 
+  @override
+  State<ReaderBottom> createState() => _ReaderBottomState();
+}
+
+class _ReaderBottomState extends State<ReaderBottom>
+    with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final bottom = context.bottom;
@@ -134,6 +140,15 @@ class ReaderBottom extends StatelessWidget {
                 tooltip: '定时翻页',
                 icon: const Icon(Icons.timer_outlined),
               ),
+              if (context.selector((p) => p.readMode.isVertical))
+                IconButton(
+                  onPressed: () {
+                    context.reader.startSmoothScroll(this);
+                    context.reader.openOrCloseToolbar();
+                  },
+                  tooltip: '平滑滚动',
+                  icon: const Icon(Icons.keyboard_double_arrow_down),
+                ),
               IconButton(
                 onPressed: () {
                   context.stateReader.toggleLockMenu();
@@ -150,6 +165,13 @@ class ReaderBottom extends StatelessWidget {
   }
 
   Widget _buildPageTurnContent(BuildContext context) {
+    final isSmoothScroll = context.selector((p) => p.isSmoothScroll);
+    return isSmoothScroll
+        ? _buildSmoothScrollContent(context)
+        : _buildTimerContent(context);
+  }
+
+  Widget _buildTimerContent(BuildContext context) {
     final interval = context.selector((p) => p.interval);
     return Column(
       key: const ValueKey('page_turn_toolbar'),
@@ -180,6 +202,45 @@ class ReaderBottom extends StatelessWidget {
                   context.reader.openOrCloseToolbar();
                 },
                 child: const Text('关闭自动翻页'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSmoothScrollContent(BuildContext context) {
+    final speed = context.selector((p) => p.scrollSpeed);
+    return Column(
+      key: const ValueKey('smooth_scroll_toolbar'),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('速度'),
+            Expanded(
+              child: Slider(
+                value: speed,
+                min: 0.5,
+                max: 10.0,
+                divisions: 19,
+                onChanged: (v) => context.reader.updateScrollSpeed(v),
+              ),
+            ),
+            Text('${speed.toStringAsFixed(1)}px'),
+          ],
+        ),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () {
+                  context.reader.stopPageTurn();
+                  context.reader.openOrCloseToolbar();
+                },
+                child: const Text('关闭平滑滚动'),
               ),
             ],
           ),
