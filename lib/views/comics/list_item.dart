@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:haka_comic/utils/common.dart';
 import 'package:haka_comic/utils/extension.dart';
+import 'package:haka_comic/utils/log.dart';
 import 'package:haka_comic/widgets/tag.dart';
 import 'package:haka_comic/widgets/ui_image.dart';
 
@@ -20,42 +21,62 @@ class ListItem extends StatelessWidget {
   });
 
   final ComicBase doc;
-
   final ContextMenu? contextMenu;
-
   final void Function(dynamic, ComicBase)? onItemSelected;
-
   final bool enableDefaultGestures;
-
   final bool isSelected;
-
   final bool isSelecting;
-
   final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final item = doc;
+    final bool useCustomGesture = onLongPress != null;
+
+    // 关键诊断日志：确认参数是否正确传入
+    Log.i('ListItem', 'build: onLongPress=${onLongPress != null}, contextMenu=${contextMenu != null}, useCustomGesture=$useCustomGesture');
+
+    Widget child = _buildContent(context, item);
+
+    if (contextMenu != null) {
+      child = ContextMenuRegion(
+        contextMenu: contextMenu!,
+        enableDefaultGestures: useCustomGesture ? false : enableDefaultGestures,
+        onItemSelected: (value) => onItemSelected?.call(value, item),
+        child: child,
+      );
+    }
+
+    if (useCustomGesture) {
+      child = Listener(
+        // 最底层指针事件——如果这个都没触发，说明事件被上层拦截了
+        onPointerDown: (e) => Log.i('ListItem', 'Listener.onPointerDown'),
+        onPointerUp: (e) => Log.i('ListItem', 'Listener.onPointerUp'),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: () {
+            Log.i('ListItem', '>>> onLongPress FIRED <<<');
+            onLongPress!();
+          },
+          onSecondaryTapUp: contextMenu != null
+              ? (details) {
+                  showContextMenu(
+                    context,
+                    contextMenu: contextMenu!.copyWith(
+                      position: contextMenu!.position ?? details.globalPosition,
+                    ),
+                    onItemSelected: (value) => onItemSelected?.call(value, item),
+                  );
+                }
+              : null,
+          child: child,
+        ),
+      );
+    }
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: contextMenu != null
-              ? ContextMenuRegion(
-                  contextMenu: contextMenu!,
-                  enableDefaultGestures: enableDefaultGestures,
-                  onItemSelected: (value) => onItemSelected?.call(value, item),
-                  builder: onLongPress != null
-                      ? (ctx, menu, _, showMenu, child) => GestureDetector(
-                            onLongPressStart: (d) => onLongPress!(),
-                            onSecondaryTapUp: (d) => showMenu(d.globalPosition),
-                            child: child,
-                          )
-                      : null,
-                  child: _buildContent(context, item),
-                )
-              : _buildContent(context, item),
-        ),
+        Positioned.fill(child: child),
 
         if (item.finished)
           Positioned(
