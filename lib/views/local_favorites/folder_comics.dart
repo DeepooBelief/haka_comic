@@ -30,6 +30,8 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
 
   bool _isSearching = false;
   String _keyword = '';
+  String _lastKeyword = '';
+  List<ComicBase> _cachedFiltered = [];
   
   bool _isSelecting = false;
   Set<String> _selectedCids = {};
@@ -91,7 +93,7 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
 
   late final menu = ContextMenu(entries: entries, padding: const .all(8.0));
 
-  void _onItemSelected(dynamic key, ComicBase item) async {
+  void _onItemSelected(dynamic key, ComicBase item) {
     if (_isSelecting) {
       setState(() {
         if (_selectedCids.contains(item.uid)) {
@@ -106,7 +108,7 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
     switch (key) {
       case 'copy':
         final title = item.title;
-        await Clipboard.setData(ClipboardData(text: title));
+        Clipboard.setData(ClipboardData(text: title));
         Toast.show(message: '已复制');
         break;
       case 'delete':
@@ -131,6 +133,11 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
   didUpdateWidget(covariant FolderComics oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.folder?.id != oldWidget.folder?.id) {
+      _lastKeyword = '';
+      _cachedFiltered = [];
+      _selectedCids.clear();
+      _isSelecting = false;
+      _isDownloading = false;
       _getFolderComicsHandler.run(widget.folder?.id);
     }
   }
@@ -140,10 +147,6 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
-  }
-
-  void _enterSelectionMode() {
-    setState(() => _isSelecting = true);
   }
 
   void _exitSelectionMode() {
@@ -159,10 +162,6 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
     });
   }
 
-  void _deselectAll() {
-    setState(() => _selectedCids.clear());
-  }
-
   void _invertSelection(List<ComicBase> comics) {
     setState(() {
       final allCids = comics.map((c) => c.uid).toSet();
@@ -172,32 +171,32 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
 
   Future<void> _batchDownload() async {
     if (_selectedCids.isEmpty) return;
-    
+
     setState(() => _isDownloading = true);
-    
+
     final comics = _getFolderComicsHandler.state.data ?? [];
-    final selectedComics = comics.where((c) => _selectedCids.contains(c.uid)).toList();
-    
+    final selectedComics =
+        comics.where((c) => _selectedCids.contains(c.uid)).toList();
+
     int successCount = 0;
     int failCount = 0;
-    
+
     try {
-      for (var comic in selectedComics) {
+      final futures = selectedComics.map((comic) async {
         try {
           final chapters = await fetchChapters(comic.uid);
-          if (chapters.isEmpty) {
-            failCount++;
-            continue;
-          }
-          
+          if (chapters.isEmpty) return false;
+
           final downloadChapters = chapters
-              .map((chapter) => DownloadChapter(
-                id: chapter.uid,
-                title: chapter.title,
-                order: chapter.order,
-              ))
+              .map(
+                (chapter) => DownloadChapter(
+                  id: chapter.uid,
+                  title: chapter.title,
+                  order: chapter.order,
+                ),
+              )
               .toList();
-          
+
           BackgroundDownloader.addTask(
             ComicDownloadTask(
               comic: DownloadComic(
@@ -208,36 +207,36 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
               chapters: downloadChapters,
             ),
           );
-          
-          successCount++;
+          return true;
         } catch (e) {
-          Log.e('Batch download comic failed', error: e);
-          failCount++;
+          Log.e('Batch download comic failed: ${comic.title}', error: e);
+          return false;
         }
-      }
-      
-      if (mounted) {
-        if (failCount == 0) {
-          Toast.show(message: '已添加 $successCount 个下载任务');
-        } else {
-          Toast.show(message: '成功 $successCount 个，失败 $failCount 个');
-        }
-        setState(() {
-          _isSelecting = false;
-          _selectedCids.clear();
-          _isDownloading = false;
-        });
-      }
+      }).toList();
+
+      final results = await Future.wait(futures);
+      successCount = results.where((r) => r).length;
+      failCount = results.where((r) => !r).length;
     } catch (e) {
       Log.e('Batch download error', error: e);
-      Toast.show(message: '批量下载失败');
-      if (mounted) {
-        setState(() => _isDownloading = false);
+    }
+
+    if (mounted) {
+      if (failCount == 0) {
+        Toast.show(message: '已添加 $successCount 个下载任务');
+      } else {
+        Toast.show(message: '成功 $successCount 个，失败 $failCount 个');
       }
+      setState(() {
+        _isSelecting = false;
+        _selectedCids.clear();
+        _isDownloading = false;
+      });
     }
   }
 
   void _openSearch() {
+    _exitSelectionMode();
     setState(() => _isSearching = true);
     _searchFocusNode.requestFocus();
   }
@@ -365,59 +364,64 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
       Success(:final data) => () {
         if (data.isEmpty) return const Empty();
 
-        final filtered = _filterComics(data);
-        
-        return Scaffold(
-          body: Column(
-            children: [
-              _header(context, filtered),
-              Expanded(
-                child: filtered.isEmpty
-                    ? const Empty()
-                    : CommonTMIList(
-                        onItemSelected: widget.folder == null
-                            ? null
-                            : (key, comic) {
-                                if (_isSelecting) {
-                                  _onItemSelected(null, comic);
-                                } else {
-                                  _onItemSelected(key, comic);
-                                }
-                              },
-                        onItemLongPress: widget.folder == null
-                            ? null
-                            : (comic) {
-                                if (!_isSelecting) {
-                                  setState(() {
-                                    _isSelecting = true;
-                                    _selectedCids = {comic.uid};
-                                  });
-                                }
-                              },
-                        contextMenu: _isSelecting ? null : (widget.folder == null ? null : menu),
-                        comics: filtered,
-                        selectedCids: _isSelecting ? _selectedCids : null,
-                      ),
+        if (_keyword != _lastKeyword) {
+          _lastKeyword = _keyword;
+          _cachedFiltered = _filterComics(data);
+        }
+        final filtered = _cachedFiltered;
+
+        return Stack(
+          children: [
+            Column(
+              children: [
+                _header(context, filtered),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? const Empty()
+                      : CommonTMIList(
+                          onItemSelected: widget.folder == null
+                              ? null
+                              : (key, comic) {
+                                  if (_isSelecting) {
+                                    _onItemSelected(null, comic);
+                                  } else {
+                                    _onItemSelected(key, comic);
+                                  }
+                                },
+                          onItemLongPress: widget.folder == null
+                              ? null
+                              : (comic) {
+                                  if (!_isSelecting) {
+                                    setState(() {
+                                      _isSelecting = true;
+                                      _selectedCids = {comic.uid};
+                                    });
+                                  }
+                                },
+                          contextMenu: _isSelecting ? null : (widget.folder == null ? null : menu),
+                          comics: filtered,
+                          selectedCids: _isSelecting ? _selectedCids : null,
+                        ),
+                ),
+              ],
+            ),
+            if (_isSelecting && _selectedCids.isNotEmpty)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: FilledButton(
+                  onPressed: _isDownloading ? null : _batchDownload,
+                  child: _isDownloading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text('批量下载(${_selectedCids.length})'),
+                ),
               ),
-            ],
-          ),
-          persistentFooterButtons: _isSelecting && _selectedCids.isNotEmpty
-              ? [
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _isDownloading ? null : _batchDownload,
-                      child: _isDownloading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text('批量下载(${_selectedCids.length})'),
-                    ),
-                  ),
-                ]
-              : null,
+          ],
         );
       }(),
       Error(:final error) => ErrorPage(
