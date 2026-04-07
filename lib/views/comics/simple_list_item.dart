@@ -119,7 +119,7 @@ class SimpleListItem extends StatelessWidget {
               ),
               Text(
                 item.title,
-                style: context.textTheme.labelSmall,
+                style: context.textTheme.titleSmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
