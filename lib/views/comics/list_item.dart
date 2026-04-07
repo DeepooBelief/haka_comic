@@ -45,21 +45,21 @@ class ListItem extends StatelessWidget {
 
     if (useCustomGesture) {
       child = GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onLongPress: onLongPress,
-          onSecondaryTapUp: contextMenu != null
-              ? (details) {
-                  showContextMenu(
-                    context,
-                    contextMenu: contextMenu!.copyWith(
-                      position: contextMenu!.position ?? details.globalPosition,
-                    ),
-                    onItemSelected: (value) => onItemSelected?.call(value, item),
-                  );
-                }
-              : null,
-          child: child,
-        );
+        behavior: HitTestBehavior.translucent,
+        onLongPress: onLongPress,
+        onSecondaryTapUp: contextMenu != null
+            ? (details) {
+                showContextMenu(
+                  context,
+                  contextMenu: contextMenu!.copyWith(
+                    position: contextMenu!.position ?? details.globalPosition,
+                  ),
+                  onItemSelected: (value) => onItemSelected?.call(value, item),
+                );
+              }
+            : null,
+        child: child,
+      );
     }
 
     return Stack(
