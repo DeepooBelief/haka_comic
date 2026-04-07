@@ -17,6 +17,7 @@ class CommonTMIList extends StatelessWidget {
     this.contextMenu,
     this.onItemSelected,
     this.enableDefaultGestures = true,
+    this.selectedCids,
   });
 
   final List<ComicBase> comics;
@@ -33,6 +34,8 @@ class CommonTMIList extends StatelessWidget {
 
   final bool enableDefaultGestures;
 
+  final Set<String>? selectedCids;
+
   bool get isSimpleMode => AppConf().comicBlockMode == ComicBlockMode.simple;
 
   @override
@@ -45,6 +48,7 @@ class CommonTMIList extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = comics[index];
         final key = ValueKey(item.uid);
+        final isSelected = selectedCids?.contains(item.uid) ?? false;
         return isSimpleMode
             ? SimpleListItem(
                 doc: item,
@@ -52,6 +56,7 @@ class CommonTMIList extends StatelessWidget {
                 onItemSelected: onItemSelected,
                 enableDefaultGestures: enableDefaultGestures,
                 contextMenu: contextMenu,
+                isSelected: isSelected,
               )
             : ListItem(
                 doc: item,
@@ -59,6 +64,7 @@ class CommonTMIList extends StatelessWidget {
                 onItemSelected: onItemSelected,
                 enableDefaultGestures: enableDefaultGestures,
                 contextMenu: contextMenu,
+                isSelected: isSelected,
               );
       },
     );

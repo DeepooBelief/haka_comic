@@ -12,6 +12,7 @@ class SimpleListItem extends StatelessWidget {
     this.contextMenu,
     this.onItemSelected,
     this.enableDefaultGestures = true,
+    this.isSelected = false,
   });
 
   final ComicBase doc;
@@ -21,6 +22,8 @@ class SimpleListItem extends StatelessWidget {
   final void Function(dynamic, ComicBase)? onItemSelected;
 
   final bool enableDefaultGestures;
+
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +75,12 @@ class SimpleListItem extends StatelessWidget {
       },
       child: Container(
         padding: const EdgeInsets.all(2),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: context.colorScheme.secondaryContainer.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(12),
+              )
+            : null,
         child: SingleChildScrollView(
           child: Column(
             spacing: 3,

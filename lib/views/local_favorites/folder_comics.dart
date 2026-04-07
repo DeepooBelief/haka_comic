@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_context_menu/flutter_context_menu.dart';
 import 'package:haka_comic/database/local_favorites_helper.dart';
+import 'package:haka_comic/network/http.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:haka_comic/utils/common.dart';
 import 'package:haka_comic/utils/extension.dart';
 import 'package:haka_comic/utils/log.dart';
 import 'package:haka_comic/utils/request/request.dart';
 import 'package:haka_comic/views/comics/common_tmi_list.dart';
+import 'package:haka_comic/views/download/background_downloader.dart';
 import 'package:haka_comic/widgets/empty.dart';
 import 'package:haka_comic/widgets/error_page.dart';
 import 'package:haka_comic/widgets/toast.dart';
@@ -28,6 +30,10 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
 
   bool _isSearching = false;
   String _keyword = '';
+  
+  bool _isSelecting = false;
+  Set<String> _selectedCids = {};
+  bool _isDownloading = false;
 
   late final _getFolderComicsHandler = _helper.getFolderComics.useRequest(
     manual: true,
@@ -86,6 +92,17 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
   late final menu = ContextMenu(entries: entries, padding: const .all(8.0));
 
   void _onItemSelected(dynamic key, ComicBase item) async {
+    if (_isSelecting) {
+      setState(() {
+        if (_selectedCids.contains(item.uid)) {
+          _selectedCids.remove(item.uid);
+        } else {
+          _selectedCids.add(item.uid);
+        }
+      });
+      return;
+    }
+    
     switch (key) {
       case 'copy':
         final title = item.title;
@@ -123,6 +140,101 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _enterSelectionMode() {
+    setState(() => _isSelecting = true);
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _isSelecting = false;
+      _selectedCids.clear();
+    });
+  }
+
+  void _selectAll(List<ComicBase> comics) {
+    setState(() {
+      _selectedCids = comics.map((c) => c.uid).toSet();
+    });
+  }
+
+  void _deselectAll() {
+    setState(() => _selectedCids.clear());
+  }
+
+  void _invertSelection(List<ComicBase> comics) {
+    setState(() {
+      final allCids = comics.map((c) => c.uid).toSet();
+      _selectedCids = allCids.difference(_selectedCids);
+    });
+  }
+
+  Future<void> _batchDownload() async {
+    if (_selectedCids.isEmpty) return;
+    
+    setState(() => _isDownloading = true);
+    
+    final comics = _getFolderComicsHandler.state.data ?? [];
+    final selectedComics = comics.where((c) => _selectedCids.contains(c.uid)).toList();
+    
+    int successCount = 0;
+    int failCount = 0;
+    
+    try {
+      for (var comic in selectedComics) {
+        try {
+          final chapters = await fetchChapters(comic.uid);
+          if (chapters.isEmpty) {
+            failCount++;
+            continue;
+          }
+          
+          final downloadChapters = chapters
+              .map((chapter) => DownloadChapter(
+                id: chapter.uid,
+                title: chapter.title,
+                order: chapter.order,
+              ))
+              .toList();
+          
+          BackgroundDownloader.addTask(
+            ComicDownloadTask(
+              comic: DownloadComic(
+                id: comic.uid,
+                title: comic.title,
+                cover: comic.thumb.url,
+              ),
+              chapters: downloadChapters,
+            ),
+          );
+          
+          successCount++;
+        } catch (e) {
+          Log.e('Batch download comic failed', error: e);
+          failCount++;
+        }
+      }
+      
+      if (mounted) {
+        if (failCount == 0) {
+          Toast.show(message: '已添加 $successCount 个下载任务');
+        } else {
+          Toast.show(message: '成功 $successCount 个，失败 $failCount 个');
+        }
+        setState(() {
+          _isSelecting = false;
+          _selectedCids.clear();
+          _isDownloading = false;
+        });
+      }
+    } catch (e) {
+      Log.e('Batch download error', error: e);
+      Toast.show(message: '批量下载失败');
+      if (mounted) {
+        setState(() => _isDownloading = false);
+      }
+    }
   }
 
   void _openSearch() {
@@ -164,7 +276,7 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
     }).toList();
   }
 
-  Widget _header(BuildContext context) {
+  Widget _header(BuildContext context, List<ComicBase> allComics) {
     return Padding(
       padding: const .symmetric(horizontal: 8, vertical: 4),
       child: _isSearching
@@ -202,21 +314,53 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
                 ),
               ],
             )
-          : Row(
-              spacing: 5,
-              children: [
-                Text(
-                  '收藏夹:${widget.folder?.name ?? '全部'}',
-                  style: context.textTheme.titleMedium,
+          : _isSelecting
+              ? Row(
+                  spacing: 5,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: '关闭',
+                      onPressed: _exitSelectionMode,
+                    ),
+                    Expanded(
+                      child: Text(
+                        '已选 ${_selectedCids.length} 项',
+                        style: context.textTheme.titleMedium,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.select_all),
+                      tooltip: '全选',
+                      onPressed: () => _selectAll(allComics),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.repeat),
+                      tooltip: '反选',
+                      onPressed: () => _invertSelection(allComics),
+                    ),
+                  ],
+                )
+              : Row(
+                  spacing: 5,
+                  children: [
+                    Text(
+                      '收藏夹:${widget.folder?.name ?? '全部'}',
+                      style: context.textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      tooltip: '搜索',
+                      onPressed: _openSearch,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.checklist_rtl),
+                      tooltip: '多选',
+                      onPressed: _enterSelectionMode,
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  tooltip: '搜索',
-                  onPressed: _openSearch,
-                ),
-              ],
-            ),
     );
   }
 
@@ -227,21 +371,48 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
         if (data.isEmpty) return const Empty();
 
         final filtered = _filterComics(data);
-        return Column(
-          children: [
-            _header(context),
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Empty()
-                  : CommonTMIList(
-                      onItemSelected: widget.folder == null
-                          ? null
-                          : _onItemSelected,
-                      contextMenu: widget.folder == null ? null : menu,
-                      comics: filtered,
+        
+        return Scaffold(
+          body: Column(
+            children: [
+              _header(context, filtered),
+              Expanded(
+                child: filtered.isEmpty
+                    ? const Empty()
+                    : CommonTMIList(
+                        onItemSelected: widget.folder == null
+                            ? null
+                            : (key, comic) {
+                                if (_isSelecting) {
+                                  _onItemSelected(null, comic);
+                                } else {
+                                  _onItemSelected(key, comic);
+                                }
+                              },
+                        contextMenu: _isSelecting ? null : (widget.folder == null ? null : menu),
+                        comics: filtered,
+                        selectedCids: _isSelecting ? _selectedCids : null,
+                      ),
+              ),
+            ],
+          ),
+          persistentFooterButtons: _isSelecting && _selectedCids.isNotEmpty
+              ? [
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _isDownloading ? null : _batchDownload,
+                      child: _isDownloading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text('批量下载(${_selectedCids.length})'),
                     ),
-            ),
-          ],
+                  ),
+                ]
+              : null,
         );
       }(),
       Error(:final error) => ErrorPage(
