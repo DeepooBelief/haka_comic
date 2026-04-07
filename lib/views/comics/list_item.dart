@@ -45,6 +45,13 @@ class ListItem extends StatelessWidget {
                   contextMenu: contextMenu!,
                   enableDefaultGestures: enableDefaultGestures,
                   onItemSelected: (value) => onItemSelected?.call(value, item),
+                  builder: onLongPress != null
+                      ? (ctx, menu, _, showMenu, child) => GestureDetector(
+                            onLongPressStart: (d) => onLongPress!(),
+                            onSecondaryTapUp: (d) => showMenu(d.globalPosition),
+                            child: child,
+                          )
+                      : null,
                   child: _buildContent(context, item),
                 )
               : _buildContent(context, item),
