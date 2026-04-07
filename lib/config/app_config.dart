@@ -86,6 +86,9 @@ class AppConf {
   /// 翻页间隔
   int _interval = 5;
 
+  /// 平滑滚动速度（每帧像素数）
+  double _scrollSpeed = 2.0;
+
   /// 是否需要身份认证
   bool _needAuth = false;
 
@@ -143,6 +146,8 @@ class AppConf {
     instance._windowWidth = prefsWithCache.getDouble('windowWidth');
     instance._windowHeight = prefsWithCache.getDouble('windowHeight');
     instance._interval = prefsWithCache.getInt('interval') ?? 5;
+    instance._scrollSpeed =
+        prefsWithCache.getDouble('scrollSpeed') ?? 2.0;
     instance._themeMode = prefsWithCache.getString('theme_mode') ?? 'System';
     instance._primaryColor =
         prefsWithCache.getString('primary_color') ?? 'System';
@@ -302,6 +307,11 @@ class AppConf {
     SharedPreferencesUtil.prefsWithCache.setInt('interval', value);
   }
 
+  set scrollSpeed(double value) {
+    _scrollSpeed = value;
+    SharedPreferencesUtil.prefsWithCache.setDouble('scrollSpeed', value);
+  }
+
   set themeMode(String value) {
     _themeMode = value;
     SharedPreferencesUtil.prefsWithCache.setString('theme_mode', value);
@@ -377,6 +387,7 @@ class AppConf {
   double? get windowHeight => _windowHeight;
 
   int get interval => _interval;
+  double get scrollSpeed => _scrollSpeed;
   String get themeMode => _themeMode;
   String get primaryColor => _primaryColor;
   List<String> get searchHistory => _searchHistory;

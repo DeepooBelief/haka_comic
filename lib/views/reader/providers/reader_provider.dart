@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:haka_comic/config/app_config.dart';
 import 'package:haka_comic/database/read_record_helper.dart';
@@ -89,10 +90,15 @@ class ReaderProvider extends RequestProvider {
         if (_isPageTurning) {
           turnPageTimer?.cancel();
           turnPageTimer = null;
+          _smoothTicker?.stop();
           _isPageTurnPausedByToolbar = true;
         }
       } else if (_isPageTurning && _isPageTurnPausedByToolbar) {
-        _startPageTurnTimer();
+        if (_isSmoothScroll) {
+          _smoothTicker?.start();
+        } else {
+          _startPageTurnTimer();
+        }
         _isPageTurnPausedByToolbar = false;
       }
 
@@ -303,8 +309,10 @@ class ReaderProvider extends RequestProvider {
     }
   }
 
-  /// 定时翻页
+  /// 自动翻页
   bool _isPageTurning = false;
+  bool _isSmoothScroll = false;
+  bool get isSmoothScroll => _isSmoothScroll;
   bool _isPageTurnPausedByToolbar = false;
   bool get isPageTurning => _isPageTurning;
   set isPageTurning(bool value) {
@@ -334,15 +342,56 @@ class ReaderProvider extends RequestProvider {
 
   /// 开始定时翻页
   void startPageTurn() {
+    _isSmoothScroll = false;
     _isPageTurnPausedByToolbar = false;
     _startPageTurnTimer();
     isPageTurning = true;
   }
 
-  /// 关闭定时翻页
+  /// 平滑滚动 Ticker
+  Ticker? _smoothTicker;
+  double _scrollSpeed = AppConf().scrollSpeed;
+  double get scrollSpeed => _scrollSpeed;
+  set scrollSpeed(double value) {
+    _scrollSpeed = value;
+    AppConf().scrollSpeed = value;
+    notifyListeners();
+  }
+
+  void updateScrollSpeed(double speed) {
+    scrollSpeed = speed;
+  }
+
+  /// 开始平滑滚动
+  void startSmoothScroll(TickerProvider vsync) {
+    _isSmoothScroll = true;
+    _isPageTurnPausedByToolbar = false;
+    _smoothTicker?.dispose();
+    _smoothTicker = vsync.createTicker((_) {
+      if (handler.state case Loading()) return;
+      if (pageNo == images.length - 1) {
+        if (!isLastChapter) {
+          goNext();
+        } else {
+          stopPageTurn();
+          Toast.show(message: '没有下一章了');
+        }
+        return;
+      }
+      scrollOffsetController.scrollTo(_scrollSpeed);
+    });
+    _smoothTicker!.start();
+    isPageTurning = true;
+  }
+
+  /// 关闭自动翻页（定时 & 平滑 通用）
   void stopPageTurn() {
     turnPageTimer?.cancel();
     turnPageTimer = null;
+    _smoothTicker?.stop();
+    _smoothTicker?.dispose();
+    _smoothTicker = null;
+    _isSmoothScroll = false;
     _isPageTurnPausedByToolbar = false;
     isPageTurning = false;
   }
@@ -383,6 +432,7 @@ class ReaderProvider extends RequestProvider {
   void dispose() {
     pageController.dispose();
     turnPageTimer?.cancel();
+    _smoothTicker?.dispose();
     preloadController.dispose();
     _pageNoTimer?.cancel();
     volumeController.stopListening();
