@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_context_menu/flutter_context_menu.dart';
 import 'package:haka_comic/database/local_favorites_helper.dart';
+import 'package:haka_comic/mixin/batch_select.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:haka_comic/utils/common.dart';
 import 'package:haka_comic/utils/extension.dart';
@@ -21,7 +22,7 @@ class FolderComics extends StatefulWidget {
   State<FolderComics> createState() => _FolderComicsState();
 }
 
-class _FolderComicsState extends State<FolderComics> with RequestMixin {
+class _FolderComicsState extends State<FolderComics> with RequestMixin, BatchSelectMixin {
   final _helper = LocalFavoritesHelper();
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
@@ -114,6 +115,7 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
   didUpdateWidget(covariant FolderComics oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.folder?.id != oldWidget.folder?.id) {
+      exitSelectionMode();
       _getFolderComicsHandler.run(widget.folder?.id);
     }
   }
@@ -126,6 +128,7 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
   }
 
   void _openSearch() {
+    exitSelectionMode();
     setState(() => _isSearching = true);
     _searchFocusNode.requestFocus();
   }
@@ -227,20 +230,47 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
         if (data.isEmpty) return const Empty();
 
         final filtered = _filterComics(data);
-        return Column(
+        return Stack(
           children: [
-            _header(context),
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Empty()
-                  : CommonTMIList(
-                      onItemSelected: widget.folder == null
-                          ? null
-                          : _onItemSelected,
-                      contextMenu: widget.folder == null ? null : menu,
-                      comics: filtered,
-                    ),
+            Column(
+              children: [
+                _header(context),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? const Empty()
+                      : CommonTMIList(
+                          onItemSelected: widget.folder == null
+                              ? null
+                              : (key, comic) => isSelecting
+                                  ? toggleItem(comic.uid)
+                                  : _onItemSelected(key, comic),
+                          onItemLongPress: (comic) {
+                            if (!isSelecting) enterSelectionMode(comic.uid);
+                          },
+                          contextMenu: widget.folder == null || isSelecting ? null : menu,
+                          enableDefaultGestures: !isSelecting,
+                          comics: filtered,
+                          selectedCids: isSelecting ? selectedCids : null,
+                        ),
+                ),
+              ],
             ),
+            if (isSelecting && selectedCids.isNotEmpty)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: FilledButton(
+                  onPressed: isDownloading ? null : () => batchDownload(filtered),
+                  child: isDownloading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text('批量下载(${selectedCids.length})'),
+                ),
+              ),
           ],
         );
       }(),
