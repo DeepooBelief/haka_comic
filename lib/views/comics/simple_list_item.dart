@@ -13,8 +13,6 @@ class SimpleListItem extends StatelessWidget {
     this.onItemSelected,
     this.enableDefaultGestures = true,
     this.isSelected = false,
-    this.isSelecting = false,
-    this.onLongPress,
   });
 
   final ComicBase doc;
@@ -22,41 +20,18 @@ class SimpleListItem extends StatelessWidget {
   final void Function(dynamic, ComicBase)? onItemSelected;
   final bool enableDefaultGestures;
   final bool isSelected;
-  final bool isSelecting;
-  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final item = doc;
-
-    final bool useCustomGesture = onLongPress != null;
 
     Widget child = _buildContent(context, item);
 
     if (contextMenu != null) {
       child = ContextMenuRegion(
         contextMenu: contextMenu!,
-        enableDefaultGestures: useCustomGesture ? false : enableDefaultGestures,
+        enableDefaultGestures: enableDefaultGestures,
         onItemSelected: (value) => onItemSelected?.call(value, item),
-        child: child,
-      );
-    }
-
-    if (useCustomGesture) {
-      child = GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onLongPress: onLongPress,
-        onSecondaryTapUp: contextMenu != null
-            ? (details) {
-                showContextMenu(
-                  context,
-                  contextMenu: contextMenu!.copyWith(
-                    position: contextMenu!.position ?? details.globalPosition,
-                  ),
-                  onItemSelected: (value) => onItemSelected?.call(value, item),
-                );
-              }
-            : null,
         child: child,
       );
     }
@@ -93,9 +68,7 @@ class SimpleListItem extends StatelessWidget {
   Widget _buildContent(BuildContext context, ComicBase item) {
     return InkWell(
       borderRadius: .circular(12),
-      onTap: isSelecting
-          ? () => onItemSelected?.call(null, item)
-          : () => context.push('/details/${item.uid}'),
+      onTap: () => context.push('/details/${item.uid}'),
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: isSelected

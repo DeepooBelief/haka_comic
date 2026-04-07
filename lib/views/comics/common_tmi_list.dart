@@ -53,27 +53,46 @@ class CommonTMIList extends StatelessWidget {
         final key = ValueKey(item.uid);
         final isSelected = selectedCids?.contains(item.uid) ?? false;
         final isSelecting = selectedCids != null;
-        return isSimpleMode
+        final void Function(dynamic, ComicBase)? itemSelected = isSelecting
+            ? (_, _) => onItemSelected?.call(null, item)
+            : onItemSelected;
+
+        Widget child = isSimpleMode
             ? SimpleListItem(
                 doc: item,
                 key: key,
-                onItemSelected: onItemSelected,
-                enableDefaultGestures: enableDefaultGestures,
+                onItemSelected: itemSelected,
+                enableDefaultGestures: onItemLongPress == null ? enableDefaultGestures : false,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
-                isSelecting: isSelecting,
-                onLongPress: onItemLongPress != null ? () => onItemLongPress!(item) : null,
               )
             : ListItem(
                 doc: item,
                 key: key,
-                onItemSelected: onItemSelected,
-                enableDefaultGestures: enableDefaultGestures,
+                onItemSelected: itemSelected,
+                enableDefaultGestures: onItemLongPress == null ? enableDefaultGestures : false,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
-                isSelecting: isSelecting,
-                onLongPress: onItemLongPress != null ? () => onItemLongPress!(item) : null,
               );
+
+        if (onItemLongPress != null) {
+          child = GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onLongPress: () => onItemLongPress!(item),
+            onSecondaryTapUp: contextMenu != null
+                ? (details) => showContextMenu(
+                      context,
+                      contextMenu: contextMenu!.copyWith(
+                        position: contextMenu!.position ?? details.globalPosition,
+                      ),
+                      onItemSelected: (value) => onItemSelected?.call(value, item),
+                    )
+                : null,
+            child: child,
+          );
+        }
+
+        return child;
       },
     );
   }
