@@ -65,6 +65,7 @@ class CommonTMIList extends StatelessWidget {
                 enableDefaultGestures: onItemLongPress == null ? enableDefaultGestures : false,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
+                isSelecting: isSelecting,
               )
             : ListItem(
                 doc: item,
@@ -73,6 +74,7 @@ class CommonTMIList extends StatelessWidget {
                 enableDefaultGestures: onItemLongPress == null ? enableDefaultGestures : false,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
+                isSelecting: isSelecting,
               );
 
         if (onItemLongPress != null) {
