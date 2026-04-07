@@ -52,6 +52,7 @@ class CommonTMIList extends StatelessWidget {
         final item = comics[index];
         final key = ValueKey(item.uid);
         final isSelected = selectedCids?.contains(item.uid) ?? false;
+        final isSelecting = selectedCids != null;
         return isSimpleMode
             ? SimpleListItem(
                 doc: item,
@@ -60,6 +61,7 @@ class CommonTMIList extends StatelessWidget {
                 enableDefaultGestures: enableDefaultGestures,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
+                isSelecting: isSelecting,
                 onLongPress: onItemLongPress != null ? () => onItemLongPress!(item) : null,
               )
             : ListItem(
@@ -69,6 +71,7 @@ class CommonTMIList extends StatelessWidget {
                 enableDefaultGestures: enableDefaultGestures,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
+                isSelecting: isSelecting,
                 onLongPress: onItemLongPress != null ? () => onItemLongPress!(item) : null,
               );
       },

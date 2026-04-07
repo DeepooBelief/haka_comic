@@ -381,13 +381,7 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
                       : CommonTMIList(
                           onItemSelected: widget.folder == null
                               ? null
-                              : (key, comic) {
-                                  if (_isSelecting) {
-                                    _onItemSelected(null, comic);
-                                  } else {
-                                    _onItemSelected(key, comic);
-                                  }
-                                },
+                              : (key, comic) => _onItemSelected(key, comic),
                           onItemLongPress: widget.folder == null
                               ? null
                               : (comic) {
@@ -398,7 +392,8 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
                                     });
                                   }
                                 },
-                          contextMenu: _isSelecting ? null : (widget.folder == null ? null : menu),
+                          contextMenu: widget.folder == null ? null : menu,
+                          enableDefaultGestures: !_isSelecting,
                           comics: filtered,
                           selectedCids: _isSelecting ? _selectedCids : null,
                         ),
