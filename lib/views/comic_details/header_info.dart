@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:haka_comic/utils/common.dart';
 import 'package:haka_comic/utils/extension.dart';
 import 'package:haka_comic/views/comic_details/icon_text.dart';
+import 'package:haka_comic/widgets/toast.dart';
 import 'package:haka_comic/widgets/ui_image.dart';
 
 class ComicHeaderInfo extends StatelessWidget {
-  const ComicHeaderInfo({
-    super.key,
-    required this.data,
-  });
+  const ComicHeaderInfo({super.key, required this.data});
 
   final Comic data;
 
@@ -61,9 +60,7 @@ class ComicHeaderInfo extends StatelessWidget {
                       size: 16,
                       color: Colors.redAccent,
                     ),
-                    text: formatNumber(
-                      data.totalLikes,
-                    ),
+                    text: formatNumber(data.totalLikes),
                   ),
                   IconText(
                     icon: const Icon(
@@ -71,9 +68,7 @@ class ComicHeaderInfo extends StatelessWidget {
                       size: 16,
                       color: Colors.amber,
                     ),
-                    text: formatNumber(
-                      data.totalViews,
-                    ),
+                    text: formatNumber(data.totalViews),
                   ),
                   IconText(
                     icon: const Icon(
@@ -94,11 +89,7 @@ class ComicHeaderInfo extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.data,
-    this.onTap,
-    required this.icon,
-  });
+  const _InfoRow({required this.data, this.onTap, required this.icon});
 
   final String? data;
   final VoidCallback? onTap;
@@ -108,6 +99,10 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      onLongPress: () {
+        Clipboard.setData(ClipboardData(text: data ?? ''));
+        Toast.show(message: '已复制');
+      },
       child: Row(
         mainAxisSize: MainAxisSize.min,
         spacing: 5,
