@@ -382,9 +382,7 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
                           onItemSelected: widget.folder == null
                               ? null
                               : (key, comic) => _onItemSelected(key, comic),
-                          onItemLongPress: widget.folder == null
-                              ? null
-                              : (comic) {
+                          onItemLongPress: (comic) {
                                   if (!_isSelecting) {
                                     setState(() {
                                       _isSelecting = true;

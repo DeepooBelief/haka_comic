@@ -98,7 +98,6 @@ class ListItem extends StatelessWidget {
       onTap: isSelecting
           ? () => onItemSelected?.call(null, item)
           : () => context.push('/details/${item.uid}'),
-      onLongPress: onLongPress,
       child: Container(
         padding: const .symmetric(vertical: 5, horizontal: 10),
         decoration: isSelected
