@@ -13,6 +13,7 @@ class SimpleListItem extends StatelessWidget {
     this.onItemSelected,
     this.enableDefaultGestures = true,
     this.isSelected = false,
+    this.onLongPress,
   });
 
   final ComicBase doc;
@@ -24,6 +25,8 @@ class SimpleListItem extends StatelessWidget {
   final bool enableDefaultGestures;
 
   final bool isSelected;
+
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +76,7 @@ class SimpleListItem extends StatelessWidget {
       onTap: () {
         context.push('/details/${item.uid}');
       },
+      onLongPress: onLongPress,
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: isSelected

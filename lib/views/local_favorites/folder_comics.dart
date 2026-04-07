@@ -354,11 +354,6 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
                       tooltip: '搜索',
                       onPressed: _openSearch,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.checklist_rtl),
-                      tooltip: '多选',
-                      onPressed: _enterSelectionMode,
-                    ),
                   ],
                 ),
     );
@@ -387,6 +382,16 @@ class _FolderComicsState extends State<FolderComics> with RequestMixin {
                                   _onItemSelected(null, comic);
                                 } else {
                                   _onItemSelected(key, comic);
+                                }
+                              },
+                        onItemLongPress: widget.folder == null
+                            ? null
+                            : (comic) {
+                                if (!_isSelecting) {
+                                  setState(() {
+                                    _isSelecting = true;
+                                    _selectedCids = {comic.uid};
+                                  });
                                 }
                               },
                         contextMenu: _isSelecting ? null : (widget.folder == null ? null : menu),

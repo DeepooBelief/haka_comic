@@ -18,6 +18,7 @@ class CommonTMIList extends StatelessWidget {
     this.onItemSelected,
     this.enableDefaultGestures = true,
     this.selectedCids,
+    this.onItemLongPress,
   });
 
   final List<ComicBase> comics;
@@ -35,6 +36,8 @@ class CommonTMIList extends StatelessWidget {
   final bool enableDefaultGestures;
 
   final Set<String>? selectedCids;
+
+  final void Function(ComicBase)? onItemLongPress;
 
   bool get isSimpleMode => AppConf().comicBlockMode == ComicBlockMode.simple;
 
@@ -57,6 +60,7 @@ class CommonTMIList extends StatelessWidget {
                 enableDefaultGestures: enableDefaultGestures,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
+                onLongPress: onItemLongPress != null ? () => onItemLongPress!(item) : null,
               )
             : ListItem(
                 doc: item,
@@ -65,6 +69,7 @@ class CommonTMIList extends StatelessWidget {
                 enableDefaultGestures: enableDefaultGestures,
                 contextMenu: contextMenu,
                 isSelected: isSelected,
+                onLongPress: onItemLongPress != null ? () => onItemLongPress!(item) : null,
               );
       },
     );
