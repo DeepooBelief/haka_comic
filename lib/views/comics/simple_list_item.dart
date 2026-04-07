@@ -3,7 +3,6 @@ import 'package:flutter_context_menu/flutter_context_menu.dart';
 import 'package:go_router/go_router.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:haka_comic/utils/extension.dart';
-import 'package:haka_comic/utils/log.dart';
 import 'package:haka_comic/widgets/ui_image.dart';
 
 class SimpleListItem extends StatelessWidget {
@@ -46,10 +45,7 @@ class SimpleListItem extends StatelessWidget {
     if (useCustomGesture) {
       child = GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onLongPress: () {
-          Log.i('SimpleListItem', 'onLongPress fired');
-          onLongPress!();
-        },
+        onLongPress: onLongPress,
         onSecondaryTapUp: contextMenu != null
             ? (details) {
                 showContextMenu(

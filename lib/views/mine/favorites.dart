@@ -163,7 +163,7 @@ class _FavoritesState extends State<Favorites>
     }
   }
 
-  List<Widget> _buildAppBarActions(BuildContext context, List<ComicBase> comics) {
+  List<Widget> _buildAppBarActions(List<ComicBase> comics) {
     if (_isSelecting) {
       return [
         IconButton(
@@ -241,7 +241,7 @@ class _FavoritesState extends State<Favorites>
             title: _isSelecting
                 ? Text('已选 ${_selectedCids.length} 项')
                 : const Text('收藏漫画'),
-            actions: _buildAppBarActions(context, comics),
+            actions: _buildAppBarActions(comics),
           ),
           body: Stack(
             children: [
