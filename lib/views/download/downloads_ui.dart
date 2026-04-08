@@ -185,7 +185,12 @@ class _DownloadsState extends State<Downloads> {
     List<_DownloadExportItem> exportItems,
   ) async {
     final tempDir = await _createCleanExportTempDirectory();
-    final zipPath = p.join(tempDir.path, 'comics.zip');
+
+    final name = exportItems.length == 1
+        ? '${exportItems.first.fileStem}.zip'
+        : 'comics.zip';
+
+    var zipPath = p.join(tempDir.path, name);
 
     final zipper = await createZipper(
       zipPath: zipPath,
