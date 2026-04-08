@@ -17,6 +17,8 @@ class CommonTMIList extends StatelessWidget {
     this.contextMenu,
     this.onItemSelected,
     this.enableDefaultGestures = true,
+    this.selectedCids,
+    this.onItemLongPress,
   });
 
   final List<ComicBase> comics;
@@ -33,6 +35,10 @@ class CommonTMIList extends StatelessWidget {
 
   final bool enableDefaultGestures;
 
+  final Set<String>? selectedCids;
+
+  final void Function(ComicBase)? onItemLongPress;
+
   bool get isSimpleMode => AppConf().comicBlockMode == ComicBlockMode.simple;
 
   @override
@@ -45,21 +51,50 @@ class CommonTMIList extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = comics[index];
         final key = ValueKey(item.uid);
-        return isSimpleMode
+        final isSelected = selectedCids?.contains(item.uid) ?? false;
+        final isSelecting = selectedCids != null;
+        final void Function(dynamic, ComicBase)? itemSelected = isSelecting
+            ? (_, _) => onItemSelected?.call(null, item)
+            : onItemSelected;
+
+        Widget child = isSimpleMode
             ? SimpleListItem(
                 doc: item,
                 key: key,
-                onItemSelected: onItemSelected,
-                enableDefaultGestures: enableDefaultGestures,
+                onItemSelected: itemSelected,
+                enableDefaultGestures: onItemLongPress == null ? enableDefaultGestures : false,
                 contextMenu: contextMenu,
+                isSelected: isSelected,
+                isSelecting: isSelecting,
               )
             : ListItem(
                 doc: item,
                 key: key,
-                onItemSelected: onItemSelected,
-                enableDefaultGestures: enableDefaultGestures,
+                onItemSelected: itemSelected,
+                enableDefaultGestures: onItemLongPress == null ? enableDefaultGestures : false,
                 contextMenu: contextMenu,
+                isSelected: isSelected,
+                isSelecting: isSelecting,
               );
+
+        if (onItemLongPress != null) {
+          child = GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onLongPress: () => onItemLongPress!(item),
+            onSecondaryTapUp: contextMenu != null
+                ? (details) => showContextMenu(
+                      context,
+                      contextMenu: contextMenu!.copyWith(
+                        position: contextMenu!.position ?? details.globalPosition,
+                      ),
+                      onItemSelected: (value) => onItemSelected?.call(value, item),
+                    )
+                : null,
+            child: child,
+          );
+        }
+
+        return child;
       },
     );
   }
