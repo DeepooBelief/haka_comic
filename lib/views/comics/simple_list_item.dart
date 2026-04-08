@@ -12,32 +12,35 @@ class SimpleListItem extends StatelessWidget {
     this.contextMenu,
     this.onItemSelected,
     this.enableDefaultGestures = true,
+    this.isSelected = false,
+    this.isSelecting = false,
   });
 
   final ComicBase doc;
-
   final ContextMenu? contextMenu;
-
   final void Function(dynamic, ComicBase)? onItemSelected;
-
   final bool enableDefaultGestures;
+  final bool isSelected;
+  final bool isSelecting;
 
   @override
   Widget build(BuildContext context) {
     final item = doc;
 
+    Widget child = _buildContent(context, item);
+
+    if (contextMenu != null) {
+      child = ContextMenuRegion(
+        contextMenu: contextMenu!,
+        enableDefaultGestures: enableDefaultGestures,
+        onItemSelected: (value) => onItemSelected?.call(value, item),
+        child: child,
+      );
+    }
+
     return Stack(
       children: [
-        Positioned.fill(
-          child: contextMenu != null
-              ? ContextMenuRegion(
-                  contextMenu: contextMenu!,
-                  enableDefaultGestures: enableDefaultGestures,
-                  onItemSelected: (value) => onItemSelected?.call(value, item),
-                  child: _buildContent(context, item),
-                )
-              : _buildContent(context, item),
-        ),
+        Positioned.fill(child: child),
 
         if (item.finished)
           Positioned(
@@ -67,11 +70,17 @@ class SimpleListItem extends StatelessWidget {
   Widget _buildContent(BuildContext context, ComicBase item) {
     return InkWell(
       borderRadius: .circular(12),
-      onTap: () {
-        context.push('/details/${item.uid}');
-      },
+      onTap: isSelecting
+          ? () => onItemSelected?.call(null, item)
+          : () => context.push('/details/${item.uid}'),
       child: Container(
         padding: const EdgeInsets.all(2),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: context.colorScheme.secondaryContainer.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(12),
+              )
+            : null,
         child: SingleChildScrollView(
           child: Column(
             spacing: 3,
