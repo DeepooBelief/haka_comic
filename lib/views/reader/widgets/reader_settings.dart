@@ -15,6 +15,9 @@ class _ReaderSettingsState extends State<ReaderSettings> {
   final enableGesture = ValueNotifier(AppConf().enableGesture);
   final enablePageAnimation = ValueNotifier(AppConf().enablePageAnimation);
   final enableVolume = ValueNotifier(AppConf().enableVolume);
+  final sidebarConfirmRequired = ValueNotifier(AppConf().sidebarConfirmRequired);
+  final sidebarEdgeWidth = ValueNotifier(AppConf().sidebarEdgeWidth);
+  final sidebarSnapThreshold = ValueNotifier(AppConf().sidebarSnapThreshold);
   final verticalCenterFraction = ValueNotifier(
     AppConf().verticalCenterFraction,
   );
@@ -197,6 +200,75 @@ class _ReaderSettingsState extends State<ReaderSettings> {
                   },
                   title: const Text('音量键翻页'),
                   subtitle: const Text('启用时，可以使用音量键翻页。'),
+                );
+              },
+            ),
+            ValueListenableBuilder(
+              valueListenable: sidebarConfirmRequired,
+              builder: (context, value, child) {
+                return SwitchListTile(
+                  secondary: const Icon(Icons.swipe_outlined),
+                  value: value,
+                  onChanged: (v) {
+                    sidebarConfirmRequired.value = v;
+                    AppConf().sidebarConfirmRequired = v;
+                  },
+                  title: const Text('章节切换二次确认'),
+                  subtitle: const Text('开启后，滑动侧边栏需二次操作确认跳转；关闭则一次滑到位即跳转。'),
+                );
+              },
+            ),
+            ValueListenableBuilder(
+              valueListenable: sidebarEdgeWidth,
+              builder: (context, value, child) {
+                return ListTile(
+                  title: const Text('侧边栏触发宽度'),
+                  trailing: Text('${value.round()} px'),
+                  subtitle: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 5,
+                    children: [
+                      const Text('屏幕边缘多宽的区域可以触发章节切换侧边栏。仅在"连续从上到下"阅读模式下生效。'),
+                      Slider(
+                        padding: const .symmetric(horizontal: 0.0),
+                        value: value,
+                        min: 8,
+                        max: 32,
+                        divisions: 6,
+                        onChanged: (v) {
+                          sidebarEdgeWidth.value = v;
+                          AppConf().sidebarEdgeWidth = v;
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            ValueListenableBuilder(
+              valueListenable: sidebarSnapThreshold,
+              builder: (context, value, child) {
+                return ListTile(
+                  title: const Text('侧边栏展开阈值'),
+                  trailing: Text('${(value * 100).round()}%'),
+                  subtitle: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 5,
+                    children: [
+                      const Text('拖拽超过此比例后松手，侧边栏会自动完全展开。'),
+                      Slider(
+                        padding: const .symmetric(horizontal: 0.0),
+                        value: value * 10,
+                        min: 2,
+                        max: 7,
+                        divisions: 5,
+                        onChanged: (v) {
+                          sidebarSnapThreshold.value = v / 10;
+                          AppConf().sidebarSnapThreshold = v / 10;
+                        },
+                      ),
+                    ],
+                  ),
                 );
               },
             ),

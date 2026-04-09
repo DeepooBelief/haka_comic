@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:haka_comic/config/app_config.dart';
 import 'package:haka_comic/views/reader/providers/list_state_provider.dart';
 import 'package:haka_comic/views/reader/providers/reader_provider.dart';
 import 'package:haka_comic/utils/extension.dart';
@@ -157,6 +158,25 @@ class _ReaderBottomState extends State<ReaderBottom>
                 tooltip: '锁定菜单',
                 icon: const Icon(Icons.lock_outlined),
               ),
+              if (context.selector((p) => p.readMode.isVertical))
+                StatefulBuilder(
+                  builder: (context, setState) {
+                    final confirmRequired = AppConf().sidebarConfirmRequired;
+                    return IconButton(
+                      onPressed: () {
+                        AppConf().sidebarConfirmRequired = !confirmRequired;
+                        setState(() {});
+                        context.reader.openOrCloseToolbar();
+                      },
+                      tooltip: confirmRequired ? '章节切换：侧边栏确认' : '章节切换：直接跳转',
+                      icon: Icon(
+                        confirmRequired
+                            ? Icons.swipe_outlined
+                            : Icons.skip_next_outlined,
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
         ),
