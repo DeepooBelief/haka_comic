@@ -34,14 +34,14 @@ class Settings extends StatelessWidget {
                 const ChangeImageQuality(),
                 const Network(),
                 MenuListTile.withAction(
-                  icon: Icons.texture_outlined,
-                  title: '屏蔽',
-                  onTap: () => context.push('/blacklist'),
-                ),
-                MenuListTile.withAction(
                   icon: Icons.topic_outlined,
                   title: '显示的分类',
                   onTap: () => context.push('/visible_categories'),
+                ),
+                MenuListTile.withAction(
+                  icon: Icons.texture_outlined,
+                  title: '分类屏蔽',
+                  onTap: () => context.push('/blacklist'),
                 ),
                 MenuListTile.withAction(
                   icon: Icons.label_off_outlined,

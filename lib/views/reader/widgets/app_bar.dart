@@ -49,6 +49,8 @@ class ReaderAppBar extends StatelessWidget {
 
     final title = context.selector((p) => p.title);
 
+    final isSmoothScroll = context.selector((p) => p.isSmoothScroll);
+
     final top = context.top;
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 250),
@@ -67,51 +69,53 @@ class ReaderAppBar extends StatelessWidget {
               ),
               onPressed: () => context.pop(),
             ),
-            actions: [
-              Builder(
-                builder: (context) {
-                  return IconButton(
-                    icon: const Icon(Icons.tune),
-                    tooltip: '设置',
-                    onPressed: () => _openSettings(context),
-                  );
-                },
-              ),
-              MenuAnchor(
-                menuChildren: ReadMode.values.map((mode) {
-                  return MenuItemButton(
-                    onPressed: () {
-                      context.reader.readMode = mode;
-                      context.reader.openOrCloseToolbar();
-                    },
-                    child: Row(
-                      spacing: 5,
-                      children: [
-                        Text(mode.displayName),
-                        if (mode == readMode)
-                          Icon(
-                            Icons.done,
-                            size: 16,
-                            color: context.colorScheme.primary,
-                          ),
-                      ],
+            actions: isSmoothScroll
+                ? null
+                : [
+                    Builder(
+                      builder: (context) {
+                        return IconButton(
+                          icon: const Icon(Icons.tune),
+                          tooltip: '设置',
+                          onPressed: () => _openSettings(context),
+                        );
+                      },
                     ),
-                  );
-                }).toList(),
-                builder: (context, controller, child) {
-                  return IconButton(
-                    icon: const Icon(Icons.chrome_reader_mode_outlined),
-                    onPressed: () {
-                      if (controller.isOpen) {
-                        controller.close();
-                      } else {
-                        controller.open();
-                      }
-                    },
-                  );
-                },
-              ),
-            ],
+                    MenuAnchor(
+                      menuChildren: ReadMode.values.map((mode) {
+                        return MenuItemButton(
+                          onPressed: () {
+                            context.reader.readMode = mode;
+                            context.reader.openOrCloseToolbar();
+                          },
+                          child: Row(
+                            spacing: 5,
+                            children: [
+                              Text(mode.displayName),
+                              if (mode == readMode)
+                                Icon(
+                                  Icons.done,
+                                  size: 16,
+                                  color: context.colorScheme.primary,
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      builder: (context, controller, child) {
+                        return IconButton(
+                          icon: const Icon(Icons.chrome_reader_mode_outlined),
+                          onPressed: () {
+                            if (controller.isOpen) {
+                              controller.close();
+                            } else {
+                              controller.open();
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ],
             title: Text(title),
             backgroundColor: context.colorScheme.secondaryContainer.withValues(
               alpha: 0.6,

@@ -81,6 +81,12 @@ class ReaderProvider extends RequestProvider {
   /// 是否显示顶部/底部工具栏
   bool showToolbar = false;
 
+  /// 隐藏工具栏（仅在显示时生效）
+  void hideToolbar() {
+    if (!showToolbar) return;
+    openOrCloseToolbar();
+  }
+
   /// 切换工具栏显示状态
   void openOrCloseToolbar() {
     Future.microtask(() {
@@ -410,6 +416,7 @@ class ReaderProvider extends RequestProvider {
       urlResolver: (image) => image.url,
       context: context,
       type: type,
+      maxPreloadCount: AppConf().preloadImageCount,
     );
   }
 

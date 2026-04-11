@@ -22,7 +22,7 @@ class ImagePreloadController<T> {
   final ReaderType type;
 
   /// 单次最大预加载数量
-  final int maxPreloadCount;
+  int maxPreloadCount;
 
   /// 预加载索引保留窗口（前后）
   final int keepWindow;

@@ -54,7 +54,7 @@ pub fn export_pdf(source_folder_path: &str, output_pdf_path: &str) -> Result<(),
 
 fn process_single_image(path: &str, fixed_width: f64) -> Result<(Image, String, f64), String> {
     let data = std::fs::read(path).map_err(|e| e.to_string())?;
-    let format = image::guess_format(&data).unwrap();
+    let format = image::guess_format(&data).map_err(|e| e.to_string())?;
     let dynamic_image = image::load_from_memory(&data).map_err(|e| e.to_string())?;
 
     let img_obj = match format {
