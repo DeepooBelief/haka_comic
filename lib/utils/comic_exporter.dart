@@ -137,12 +137,14 @@ class ComicExporter {
           sourceFolderPath: sourceFolderPath,
           outputPdfPath: outputPath,
         );
+        break;
       case ExportFileType.zip:
         await compress(
           sourceFolderPath: sourceFolderPath,
           outputZipPath: outputPath,
           compressionMethod: CompressionMethod.stored,
         );
+        break;
     }
   }
 
