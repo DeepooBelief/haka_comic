@@ -277,12 +277,12 @@ class _ComicDetailsState extends State<ComicDetails> with RequestMixin {
                             updatedAt: data.comic.updated_at,
                           ),
                           const SizedBox(height: 5),
-                          DescriptionBox(description: data.comic.description),
-                          const SizedBox(height: 5),
                           ChaptersList(
                             chapters: chapters,
                             startRead: _startRead,
                           ),
+                          const SizedBox(height: 5),
+                          DescriptionBox(description: data.comic.description),
                           const SizedBox(height: 5),
                           TitleBox(
                             title: '相关推荐',
