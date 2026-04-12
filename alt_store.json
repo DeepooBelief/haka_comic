@@ -14,6 +14,14 @@
       "iconURL": "https://raw.githubusercontent.com/raoxwup/haka_comic/main/assets/icons/ios/Light.png",
       "versions": [
         {
+          "version": "1.2.1",
+          "buildVersion": "1.2.1",
+          "date": "2026-04-11T09:16:08Z",
+          "downloadURL": "https://github.com/raoxwup/haka_comic/releases/download/1.2.1/no-codesign-ios-v1.2.1.ipa",
+          "size": 12525648,
+          "minOSVersion": "13.0"
+        },
+        {
           "version": "1.2.0",
           "buildVersion": "1.2.0",
           "date": "2026-04-08T03:45:00Z",

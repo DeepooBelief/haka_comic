@@ -6,6 +6,26 @@ import 'package:haka_comic/database/utils.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
+const _historyPageSize = 20;
+const _historySelectColumns = '''
+  cid,
+  title,
+  author,
+  total_views,
+  total_likes,
+  pages_count,
+  eps_count,
+  finished,
+  categories,
+  file_server,
+  path,
+  original_name,
+  likes_count,
+  created_at,
+  updated_at,
+  tags
+''';
+
 final migrations = SqliteMigrations()
   ..add(
     SqliteMigration(1, (tx) async {
@@ -49,7 +69,31 @@ final migrations = SqliteMigrations()
           ALTER TABLE history ADD COLUMN tags TEXT DEFAULT '[]';
         ''');
     }),
+  )
+  ..add(
+    SqliteMigration(3, (tx) async {
+      await tx.execute('DROP TRIGGER IF EXISTS update_history_timestamp;');
+      await tx.execute('DROP INDEX IF EXISTS idx_updated_at;');
+      await tx.execute('''
+          CREATE INDEX IF NOT EXISTS idx_history_updated_at_cid 
+          ON history(updated_at DESC, cid DESC);
+        ''');
+    }),
   );
+
+class HistoryPageResult {
+  final List<HistoryDoc> comics;
+  final bool hasMore;
+  final int page;
+
+  const HistoryPageResult({
+    required this.comics,
+    required this.hasMore,
+    required this.page,
+  });
+
+  static const empty = HistoryPageResult(comics: [], hasMore: false, page: 0);
+}
 
 class HistoryHelper with ChangeNotifier, DbBackupMixin {
   HistoryHelper._create();
@@ -104,7 +148,8 @@ class HistoryHelper with ChangeNotifier, DbBackupMixin {
           path = excluded.path,
           original_name = excluded.original_name,
           likes_count = excluded.likes_count,
-          tags = excluded.tags
+          tags = excluded.tags,
+          updated_at = CURRENT_TIMESTAMP
         ''',
         [
           comic.id,
@@ -142,38 +187,37 @@ class HistoryHelper with ChangeNotifier, DbBackupMixin {
 
   Future<List<HistoryDoc>> query(int page) async {
     final result = await db.getAll(
-      'SELECT * FROM history ORDER BY updated_at DESC LIMIT 20 OFFSET ?',
-      [(page - 1) * 20],
+      '''
+      SELECT $_historySelectColumns
+      FROM history
+      ORDER BY updated_at DESC, cid DESC
+      LIMIT ? OFFSET ?
+      ''',
+      [_historyPageSize, (page - 1) * _historyPageSize],
     );
 
-    return result.map((row) {
-      return HistoryDoc.fromJson({
-        "id": row["cid"],
-        "title": row["title"],
-        "author": row["author"],
-        "totalViews": row["total_views"],
-        "totalLikes": row["total_likes"],
-        "pagesCount": row["pages_count"],
-        "epsCount": row["eps_count"],
-        "finished": row["finished"] == 1,
-        "categories": jsonDecode(row["categories"]),
-        "thumb": {
-          "fileServer": row["file_server"],
-          "path": row["path"],
-          "originalName": row["original_name"],
-        },
-        "likesCount": row["likes_count"],
-        "_id": row["cid"],
-        "updatedAt": row["updated_at"],
-        "createdAt": row["created_at"],
-        "tags": jsonDecode(row["tags"]),
-      });
-    }).toList();
+    return result.map(_toHistoryDoc).toList();
+  }
+
+  Future<HistoryPageResult> queryPage(int page) async {
+    final result = await db.getAll(
+      '''
+      SELECT $_historySelectColumns
+      FROM history
+      ORDER BY updated_at DESC, cid DESC
+      LIMIT ? OFFSET ?
+      ''',
+      [_historyPageSize + 1, (page - 1) * _historyPageSize],
+    );
+
+    final hasMore = result.length > _historyPageSize;
+    final comics = result.take(_historyPageSize).map(_toHistoryDoc).toList();
+    return HistoryPageResult(comics: comics, hasMore: hasMore, page: page);
   }
 
   Future<int> count() async {
-    final result = await db.get('SELECT COUNT(*) FROM history');
-    return result['COUNT(*)'] as int;
+    final result = await db.get('SELECT COUNT(*) AS count FROM history');
+    return result['count'] as int;
   }
 
   @override
@@ -182,6 +226,30 @@ class HistoryHelper with ChangeNotifier, DbBackupMixin {
     await Future.delayed(const Duration(milliseconds: 100));
     _lastEvent = const RestoreEvent();
     notifyListeners();
+  }
+
+  HistoryDoc _toHistoryDoc(Map<String, dynamic> row) {
+    return HistoryDoc.fromJson({
+      "id": row["cid"],
+      "title": row["title"],
+      "author": row["author"],
+      "totalViews": row["total_views"],
+      "totalLikes": row["total_likes"],
+      "pagesCount": row["pages_count"],
+      "epsCount": row["eps_count"],
+      "finished": row["finished"] == 1,
+      "categories": jsonDecode(row["categories"] ?? '[]'),
+      "thumb": {
+        "fileServer": row["file_server"],
+        "path": row["path"],
+        "originalName": row["original_name"],
+      },
+      "likesCount": row["likes_count"],
+      "_id": row["cid"],
+      "updatedAt": row["updated_at"],
+      "createdAt": row["created_at"],
+      "tags": jsonDecode(row["tags"] ?? '[]'),
+    });
   }
 }
 
