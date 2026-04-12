@@ -98,12 +98,6 @@ class AppConf {
   /// 是否显示阅读器页码
   bool _showPageNumbers = true;
 
-  /// 侧边栏边缘检测宽度（逻辑像素）
-  double _sidebarEdgeWidth = 16.0;
-
-  /// 侧边栏展开阈值（0.0~1.0，拖拽超过此比例松手后自动展开）
-  double _sidebarSnapThreshold = 0.4;
-
   /// 章节跳转是否需要二次确认（false = 一次滑动直接跳转）
   bool _sidebarConfirmRequired = false;
 
@@ -168,10 +162,6 @@ class AppConf {
     instance._showPageNumbers =
         prefsWithCache.getBool('showPageNumbers') ?? true;
     instance._enableGesture = prefsWithCache.getBool('enableGesture') ?? true;
-    instance._sidebarEdgeWidth =
-        prefsWithCache.getDouble('sidebarEdgeWidth') ?? 16.0;
-    instance._sidebarSnapThreshold =
-        prefsWithCache.getDouble('sidebarSnapThreshold') ?? 0.4;
     instance._sidebarConfirmRequired =
         prefsWithCache.getBool('sidebarConfirmRequired') ?? false;
     instance._enablePageAnimation =
@@ -365,19 +355,6 @@ class AppConf {
     SharedPreferencesUtil.prefsWithCache.setBool('enableGesture', value);
   }
 
-  set sidebarEdgeWidth(double value) {
-    _sidebarEdgeWidth = value;
-    SharedPreferencesUtil.prefsWithCache.setDouble('sidebarEdgeWidth', value);
-  }
-
-  set sidebarSnapThreshold(double value) {
-    _sidebarSnapThreshold = value;
-    SharedPreferencesUtil.prefsWithCache.setDouble(
-      'sidebarSnapThreshold',
-      value,
-    );
-  }
-
   set sidebarConfirmRequired(bool value) {
     _sidebarConfirmRequired = value;
     SharedPreferencesUtil.prefsWithCache.setBool('sidebarConfirmRequired', value);
@@ -428,8 +405,6 @@ class AppConf {
   double get verticalListWidthRatio => _verticalListWidthRatio;
   bool get showPageNumbers => _showPageNumbers;
   bool get enableGesture => _enableGesture;
-  double get sidebarEdgeWidth => _sidebarEdgeWidth;
-  double get sidebarSnapThreshold => _sidebarSnapThreshold;
   bool get sidebarConfirmRequired => _sidebarConfirmRequired;
   bool get enablePageAnimation => _enablePageAnimation;
   int get preloadImageCount => _preloadImageCount;
