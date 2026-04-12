@@ -15,7 +15,6 @@ class _ReaderSettingsState extends State<ReaderSettings> {
   final enableGesture = ValueNotifier(AppConf().enableGesture);
   final enablePageAnimation = ValueNotifier(AppConf().enablePageAnimation);
   final enableVolume = ValueNotifier(AppConf().enableVolume);
-  final sidebarConfirmRequired = ValueNotifier(AppConf().sidebarConfirmRequired);
   final verticalCenterFraction = ValueNotifier(
     AppConf().verticalCenterFraction,
   );
@@ -229,21 +228,6 @@ class _ReaderSettingsState extends State<ReaderSettings> {
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-            ValueListenableBuilder(
-              valueListenable: sidebarConfirmRequired,
-              builder: (context, value, child) {
-                return SwitchListTile(
-                  secondary: const Icon(Icons.swipe_outlined),
-                  value: value,
-                  onChanged: (v) {
-                    sidebarConfirmRequired.value = v;
-                    AppConf().sidebarConfirmRequired = v;
-                  },
-                  title: const Text('章节切换二次确认'),
-                  subtitle: const Text('开启后，滑动侧边栏需二次操作确认跳转；关闭则一次滑到位即跳转。'),
                 );
               },
             ),

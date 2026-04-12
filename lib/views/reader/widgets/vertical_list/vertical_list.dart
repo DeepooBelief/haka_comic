@@ -6,7 +6,7 @@ import 'package:haka_comic/views/reader/utils/utils.dart';
 import 'package:haka_comic/views/reader/widgets/comic_list_mixin.dart';
 import 'package:haka_comic/views/reader/providers/reader_provider.dart';
 import 'package:haka_comic/views/reader/widgets/reader_image.dart';
-import 'package:haka_comic/views/reader/widgets/vertical_list/chapter_sidebar_wrapper.dart';
+import 'package:haka_comic/views/reader/widgets/vertical_list/chapter_swipe_detector.dart';
 import 'package:haka_comic/views/reader/widgets/vertical_list/gesture.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -65,7 +65,7 @@ class _VerticalListState extends State<VerticalList> with ComicListMixin {
     // 这里不用监听pageNo变化 因为只在initialScrollIndex使用一次
     final pageNo = context.reader.pageNo;
 
-    return ChapterSidebarWrapper(
+    return ChapterSwipeDetector(
       child: GestureWrapper(
       openOrCloseToolbar: context.reader.openOrCloseToolbar,
       jumpOffset: context.reader.pageTurnForVertical,

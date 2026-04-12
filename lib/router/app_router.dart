@@ -15,7 +15,6 @@ import 'package:haka_comic/views/local_favorites/local_favorites.dart';
 import 'package:haka_comic/views/notifications/notifications.dart';
 import 'package:haka_comic/views/reader/providers/list_state_provider.dart';
 import 'package:haka_comic/views/reader/providers/reader_provider.dart';
-import 'package:haka_comic/views/reader/providers/sidebar_provider.dart';
 import 'package:haka_comic/views/reader/state/comic_state.dart';
 import 'package:haka_comic/views/search/search_comics.dart';
 import 'package:haka_comic/views/comments/comments.dart';
@@ -112,7 +111,6 @@ final GoRouter appRouter = GoRouter(
           providers: [
             ChangeNotifierProvider(create: (_) => ReaderProvider(state: state)),
             ChangeNotifierProvider(create: (_) => ListStateProvider()),
-            ChangeNotifierProvider(create: (_) => SidebarProvider()),
           ],
           child: const Reader(),
         );

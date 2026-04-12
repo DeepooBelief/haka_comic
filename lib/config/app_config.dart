@@ -98,9 +98,6 @@ class AppConf {
   /// 是否显示阅读器页码
   bool _showPageNumbers = true;
 
-  /// 章节跳转是否需要二次确认（false = 一次滑动直接跳转）
-  bool _sidebarConfirmRequired = false;
-
   /// 是否启用手势翻页
   bool _enableGesture = true;
 
@@ -162,8 +159,6 @@ class AppConf {
     instance._showPageNumbers =
         prefsWithCache.getBool('showPageNumbers') ?? true;
     instance._enableGesture = prefsWithCache.getBool('enableGesture') ?? true;
-    instance._sidebarConfirmRequired =
-        prefsWithCache.getBool('sidebarConfirmRequired') ?? false;
     instance._enablePageAnimation =
         prefsWithCache.getBool('enablePageAnimation') ?? true;
     instance._preloadImageCount =
@@ -355,11 +350,6 @@ class AppConf {
     SharedPreferencesUtil.prefsWithCache.setBool('enableGesture', value);
   }
 
-  set sidebarConfirmRequired(bool value) {
-    _sidebarConfirmRequired = value;
-    SharedPreferencesUtil.prefsWithCache.setBool('sidebarConfirmRequired', value);
-  }
-
   set enablePageAnimation(bool value) {
     _enablePageAnimation = value;
     SharedPreferencesUtil.prefsWithCache.setBool('enablePageAnimation', value);
@@ -405,7 +395,6 @@ class AppConf {
   double get verticalListWidthRatio => _verticalListWidthRatio;
   bool get showPageNumbers => _showPageNumbers;
   bool get enableGesture => _enableGesture;
-  bool get sidebarConfirmRequired => _sidebarConfirmRequired;
   bool get enablePageAnimation => _enablePageAnimation;
   int get preloadImageCount => _preloadImageCount;
 
