@@ -32,6 +32,7 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
   late final AnimationController _controller;
   SidebarDirection? _dragDirection;
   bool _isDragging = false;
+  int? _activePointer;
 
   // 视觉参数
   static const _sidebarWidthRatio = 0.4;
@@ -59,6 +60,9 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
   // 手指位置记录
   Offset? _pointerStart;
 
+  // 缓存屏幕宽度，避免在拖拽热路径中反复查询 MediaQuery
+  double _cachedScreenWidth = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -82,11 +86,13 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
     _awaitingSecondary = false;
     _secondaryDragAccum = 0.0;
     _pointerStart = null;
+    _activePointer = null;
   }
 
   // ── 条件判断 ────────────────────────────────────────────
 
   bool get _canOpen {
+    if (!mounted) return false;
     final reader = context.reader;
     final state = context.stateReader;
     if (reader.showToolbar || state.lockMenu) return false;
@@ -98,22 +104,37 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
   // ── 边缘检测区（一次滑动触发）──────────────────────────
 
   void _onEdgePointerDown(PointerDownEvent event, SidebarDirection dir) {
+    if (!mounted) return;
+    if (_activePointer != null) return;
     if (!_canOpen) return;
     // 方向边界检查（防御性）
     final reader = context.reader;
     if (dir == SidebarDirection.right && reader.isLastChapter) return;
     if (dir == SidebarDirection.left && reader.isFirstChapter) return;
 
+    _activePointer = event.pointer;
     _pointerStart = event.position;
     _dragDirection = dir;
+    _cachedScreenWidth = MediaQuery.sizeOf(context).width;
   }
 
   void _onEdgePointerMove(PointerMoveEvent event) {
+    if (!mounted) return;
+    if (event.pointer != _activePointer) return;
     if (_dragDirection == null) return;
     final delta = event.delta.dx;
     if (!_isDragging) {
       final totalDx = event.position.dx - (_pointerStart?.dx ?? event.position.dx);
       if (totalDx.abs() < 4.0) return;
+      // 校验滑动方向：right(下一章)需向左滑，left(上一章)需向右滑
+      final correctDirection = _dragDirection == SidebarDirection.right
+          ? totalDx < 0
+          : totalDx > 0;
+      if (!correctDirection) {
+        _dragDirection = null;
+        _activePointer = null;
+        return;
+      }
       _isDragging = true;
       // 仅在开启侧边栏确认模式时才激活 provider（驱动侧边栏动画）
       if (AppConf().sidebarConfirmRequired) {
@@ -126,19 +147,28 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
   }
 
   void _onEdgePointerUp(PointerUpEvent event) {
-    if (_dragDirection == null) return;
+    if (!mounted) return;
+    if (event.pointer != _activePointer) return;
+    if (_dragDirection == null) {
+      _activePointer = null;
+      return;
+    }
     if (_isDragging) {
       _finishFirstDrag(event.position);
     } else {
       _dragDirection = null;
+      _activePointer = null;
     }
     _pointerStart = null;
   }
 
   void _onEdgePointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _activePointer) return;
     _pointerStart = null;
-    if (!_awaitingSecondary) {
-      _resetAllState();
+    if (_awaitingSecondary) return;
+    final wasActive = mounted && context.sidebarReader.active;
+    _resetAllState();
+    if (wasActive) {
       _controller.animateTo(0.0,
         curve: Curves.easeOutCubic,
         duration: const Duration(milliseconds: 200),
@@ -146,6 +176,8 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
         if (!mounted) return;
         context.sidebarReader.dismiss();
       });
+    } else {
+      _controller.value = 0.0;
     }
   }
 
@@ -196,12 +228,11 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
   // ── 核心逻辑 ──────────────────────────────────────────
 
   void _updateDrag(double delta) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
     // right(下一章)：手指向左 delta<0，sign=-1 使 controller 递增
     // left(上一章)：手指向右 delta>0，sign=+1 使 controller 递增
     final sign = _dragDirection == SidebarDirection.right ? -1.0 : 1.0;
     _controller.value =
-        (_controller.value + (delta * sign) / (screenWidth * _dragSensitivity))
+        (_controller.value + (delta * sign) / (_cachedScreenWidth * _dragSensitivity))
             .clamp(0.0, 1.0);
     context.sidebarReader.updateProgress(_controller.value);
   }
@@ -213,25 +244,26 @@ class _ChapterSidebarWrapperState extends State<ChapterSidebarWrapper>
     final dir = _dragDirection;
     _isDragging = false;
     _dragDirection = null;
+    _activePointer = null;
+
+    if (dir == null) return;
 
     if (!AppConf().sidebarConfirmRequired) {
       // 未开启侧边栏确认 → 直接跳转，不显示侧边栏
-      _jumpChapter(dir!);
+      _jumpChapter(dir);
       return;
     }
-
-    final screenWidth = MediaQuery.sizeOf(context).width;
 
     // right(下一章)：手指从右往左划，停在左侧 20% 以内 → 直接跳
     // left(上一章)：手指从左往右划，停在右侧 20% 以内 → 直接跳
     final isDeepEnough = dir == SidebarDirection.right
-        ? upPosition.dx < screenWidth * _directJumpPositionRatio
-        : upPosition.dx > screenWidth * (1.0 - _directJumpPositionRatio);
+        ? upPosition.dx < _cachedScreenWidth * _directJumpPositionRatio
+        : upPosition.dx > _cachedScreenWidth * (1.0 - _directJumpPositionRatio);
 
     if (isDeepEnough) {
-      _jumpChapter(dir!);
+      _jumpChapter(dir);
     } else {
-      _openAndAwait(dir!);
+      _openAndAwait(dir);
     }
   }
 
