@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:haka_comic/network/proxy_overrides.dart';
 import 'package:haka_comic/rust/api/proxy.dart';
-import 'package:haka_comic/rust/third_party/sysproxy.dart';
 import 'package:haka_comic/utils/log.dart';
 
 class ProxyConfig {
@@ -15,14 +14,6 @@ class ProxyConfig {
   final bool enable;
   final String host;
   final int port;
-
-  factory ProxyConfig.fromSysproxy(Sysproxy proxy) {
-    return ProxyConfig(
-      enable: proxy.enable,
-      host: proxy.host,
-      port: proxy.port,
-    );
-  }
 
   factory ProxyConfig.fromPayload(Map<dynamic, dynamic> payload) {
     return ProxyConfig(
@@ -134,7 +125,11 @@ class DesktopProxyCoordinator {
 
   static Future<ProxyConfig> _readCurrentProxy() async {
     final proxy = await getProxy();
-    return ProxyConfig.fromSysproxy(proxy);
+    return ProxyConfig(
+      enable: proxy.enable,
+      host: proxy.host,
+      port: proxy.port,
+    );
   }
 }
 

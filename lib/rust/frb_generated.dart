@@ -12,7 +12,6 @@ import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-import 'third_party/sysproxy.dart';
 
 /// Main entrypoint of the Rust API
 class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
@@ -69,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 662981813;
+  int get rustContentHash => 306604114;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -120,17 +119,11 @@ abstract class RustLibApi extends BaseApi {
     required String outputPdfPath,
   });
 
-  Future<Sysproxy> crateApiProxyGetProxy();
+  Future<SystemProxy> crateApiProxyGetProxy();
 
   Future<void> crateApiSimpleInitApp();
 
-  Future<Sysproxy> sysproxySysproxyDefault();
-
-  Future<Sysproxy> sysproxySysproxyGetSystemProxy();
-
-  Future<bool> sysproxySysproxyIsSupport();
-
-  Future<void> sysproxySysproxySetSystemProxy({required Sysproxy that});
+  Future<SystemProxy> crateApiProxySystemProxyDefault();
 
   RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_Zipper;
 
@@ -435,7 +428,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<Sysproxy> crateApiProxyGetProxy() {
+  Future<SystemProxy> crateApiProxyGetProxy() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -448,7 +441,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_sysproxy,
+          decodeSuccessData: sse_decode_system_proxy,
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiProxyGetProxyConstMeta,
@@ -489,7 +482,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   @override
-  Future<Sysproxy> sysproxySysproxyDefault() {
+  Future<SystemProxy> crateApiProxySystemProxyDefault() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -502,103 +495,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_sysproxy,
+          decodeSuccessData: sse_decode_system_proxy,
           decodeErrorData: null,
         ),
-        constMeta: kSysproxySysproxyDefaultConstMeta,
+        constMeta: kCrateApiProxySystemProxyDefaultConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kSysproxySysproxyDefaultConstMeta =>
-      const TaskConstMeta(debugName: "sysproxy_default", argNames: []);
-
-  @override
-  Future<Sysproxy> sysproxySysproxyGetSystemProxy() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 12,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_sysproxy,
-          decodeErrorData: sse_decode_AnyhowException,
-        ),
-        constMeta: kSysproxySysproxyGetSystemProxyConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kSysproxySysproxyGetSystemProxyConstMeta =>
-      const TaskConstMeta(debugName: "sysproxy_get_system_proxy", argNames: []);
-
-  @override
-  Future<bool> sysproxySysproxyIsSupport() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 13,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kSysproxySysproxyIsSupportConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kSysproxySysproxyIsSupportConstMeta =>
-      const TaskConstMeta(debugName: "sysproxy_is_support", argNames: []);
-
-  @override
-  Future<void> sysproxySysproxySetSystemProxy({required Sysproxy that}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_sysproxy(that, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 14,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
-        ),
-        constMeta: kSysproxySysproxySetSystemProxyConstMeta,
-        argValues: [that],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kSysproxySysproxySetSystemProxyConstMeta =>
-      const TaskConstMeta(
-        debugName: "sysproxy_set_system_proxy",
-        argNames: ["that"],
-      );
+  TaskConstMeta get kCrateApiProxySystemProxyDefaultConstMeta =>
+      const TaskConstMeta(debugName: "system_proxy_default", argNames: []);
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_Zipper => wire
@@ -654,12 +562,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Sysproxy dco_decode_box_autoadd_sysproxy(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_sysproxy(raw);
-  }
-
-  @protected
   CompressionMethod dco_decode_compression_method(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return CompressionMethod.values[raw as int];
@@ -684,12 +586,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Sysproxy dco_decode_sysproxy(dynamic raw) {
+  SystemProxy dco_decode_system_proxy(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 4)
       throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
-    return Sysproxy(
+    return SystemProxy(
       enable: dco_decode_bool(arr[0]),
       host: dco_decode_String(arr[1]),
       port: dco_decode_u_16(arr[2]),
@@ -778,12 +680,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Sysproxy sse_decode_box_autoadd_sysproxy(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_sysproxy(deserializer));
-  }
-
-  @protected
   CompressionMethod sse_decode_compression_method(
     SseDeserializer deserializer,
   ) {
@@ -817,13 +713,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Sysproxy sse_decode_sysproxy(SseDeserializer deserializer) {
+  SystemProxy sse_decode_system_proxy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_enable = sse_decode_bool(deserializer);
     var var_host = sse_decode_String(deserializer);
     var var_port = sse_decode_u_16(deserializer);
     var var_bypass = sse_decode_String(deserializer);
-    return Sysproxy(
+    return SystemProxy(
       enable: var_enable,
       host: var_host,
       port: var_port,
@@ -915,15 +811,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_sysproxy(
-    Sysproxy self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_sysproxy(self, serializer);
-  }
-
-  @protected
   void sse_encode_compression_method(
     CompressionMethod self,
     SseSerializer serializer,
@@ -959,7 +846,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_sysproxy(Sysproxy self, SseSerializer serializer) {
+  void sse_encode_system_proxy(SystemProxy self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self.enable, serializer);
     sse_encode_String(self.host, serializer);

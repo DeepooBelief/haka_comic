@@ -11,7 +11,6 @@ import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
-import 'third_party/sysproxy.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -53,9 +52,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
-  Sysproxy dco_decode_box_autoadd_sysproxy(dynamic raw);
-
-  @protected
   CompressionMethod dco_decode_compression_method(dynamic raw);
 
   @protected
@@ -68,7 +64,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
-  Sysproxy dco_decode_sysproxy(dynamic raw);
+  SystemProxy dco_decode_system_proxy(dynamic raw);
 
   @protected
   int dco_decode_u_16(dynamic raw);
@@ -110,9 +106,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
-  Sysproxy sse_decode_box_autoadd_sysproxy(SseDeserializer deserializer);
-
-  @protected
   CompressionMethod sse_decode_compression_method(SseDeserializer deserializer);
 
   @protected
@@ -125,7 +118,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
-  Sysproxy sse_decode_sysproxy(SseDeserializer deserializer);
+  SystemProxy sse_decode_system_proxy(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
@@ -173,9 +166,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_sysproxy(Sysproxy self, SseSerializer serializer);
-
-  @protected
   void sse_encode_compression_method(
     CompressionMethod self,
     SseSerializer serializer,
@@ -194,7 +184,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_sysproxy(Sysproxy self, SseSerializer serializer);
+  void sse_encode_system_proxy(SystemProxy self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);

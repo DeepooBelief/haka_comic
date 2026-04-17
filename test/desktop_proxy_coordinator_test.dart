@@ -38,29 +38,28 @@ void main() {
       coordinator.dispose();
     });
 
-    test('polling only notifies listeners when proxy changes', () async {
+    test('syncNow only notifies listeners when proxy changes', () async {
       final applied = <ProxyConfig>[];
       final notified = <ProxyConfig>[];
       final sequence = <ProxyConfig>[directProxy, directProxy, systemProxy];
       var index = 0;
 
       final coordinator = DesktopProxyCoordinator(
-        pollInterval: const Duration(milliseconds: 10),
         fetchProxy: () async => sequence[index++],
         applyProxy: applied.add,
       )..addListener(notified.add);
 
-      await coordinator.start();
+      await coordinator.syncNow();
 
       expect(notified, [directProxy]);
       expect(applied, [directProxy]);
 
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await coordinator.syncNow();
 
       expect(notified, [directProxy]);
       expect(applied, [directProxy]);
 
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await coordinator.syncNow();
 
       expect(notified, [directProxy, systemProxy]);
       expect(applied, [directProxy, systemProxy]);
