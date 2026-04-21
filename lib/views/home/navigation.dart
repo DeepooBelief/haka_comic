@@ -60,7 +60,7 @@ class AppNavigationBar extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
                   child: Center(
                     child: Text(
-                      'Haka Comic',
+                      'HaKa Comic',
                       style: TextStyle(
                         color: scheme.primary,
                         fontSize: 20,
