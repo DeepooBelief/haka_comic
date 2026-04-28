@@ -5,8 +5,10 @@ import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:haka_comic/database/download_task_helper.dart';
+import 'package:haka_comic/network/desktop_proxy_coordinator.dart';
 import 'package:haka_comic/network/http.dart' show fetchChapterImagesIsolate;
 import 'package:haka_comic/network/models.dart';
+import 'package:haka_comic/network/proxy_overrides.dart';
 import 'package:haka_comic/network/utils.dart';
 import 'package:haka_comic/utils/common.dart';
 import 'package:haka_comic/utils/extension.dart';
@@ -26,6 +28,7 @@ class BackgroundDownloader {
 
   static StreamController<List<ComicDownloadTask>>? _tasksController;
   static StreamController<int>? _speedController;
+  static ProxyListener? _proxyListener;
 
   static StreamController<List<ComicDownloadTask>> get streamController {
     return _tasksController ??=
@@ -43,11 +46,20 @@ class BackgroundDownloader {
   static Future<void> _doInitialize() async {
     final receivePort = ReceivePort();
     final readyCompleter = Completer<void>();
+    Map<String, dynamic>? initialProxyPayload;
+
+    if (isDesktop) {
+      final initialProxy =
+          desktopProxyCoordinator.currentProxy ??
+          await desktopProxyCoordinator.syncNow();
+      initialProxyPayload = initialProxy?.toPayload();
+    }
 
     _mainReceivePort = receivePort;
     _workerIsolate = await Isolate.spawn(_downloadIsolateEntry, (
       receivePort.sendPort,
       _rootToken,
+      initialProxyPayload,
     ));
 
     receivePort.listen((message) {
@@ -73,6 +85,18 @@ class BackgroundDownloader {
     });
 
     await readyCompleter.future;
+
+    if (isDesktop) {
+      _proxyListener ??= (proxy) {
+        _postMessage(
+          WorkerMessage(
+            type: WorkerMessageType.proxy,
+            payload: proxy.toPayload(),
+          ),
+        );
+      };
+      desktopProxyCoordinator.addListener(_proxyListener!);
+    }
   }
 
   static void getTasks() {
@@ -113,6 +137,11 @@ class BackgroundDownloader {
     _tasksController = null;
     _speedController?.close();
     _speedController = null;
+    final proxyListener = _proxyListener;
+    if (proxyListener != null) {
+      desktopProxyCoordinator.removeListener(proxyListener);
+      _proxyListener = null;
+    }
     _initializeFuture = null;
   }
 
@@ -138,9 +167,21 @@ class BackgroundDownloader {
   }
 }
 
-void _downloadIsolateEntry((SendPort, RootIsolateToken) args) async {
-  final (sendPort, rootToken) = args;
+void _downloadIsolateEntry(
+  (SendPort, RootIsolateToken, Map<String, dynamic>?) args,
+) async {
+  final (sendPort, rootToken, initialProxyPayload) = args;
   BackgroundIsolateBinaryMessenger.ensureInitialized(rootToken);
+
+  // 下载 Isolate 中安装代理覆盖层，使 Dio 下载请求也走系统代理
+  if (isDesktop) {
+    ProxyHttpOverrides.install();
+    if (initialProxyPayload != null) {
+      DesktopProxyCoordinator.applyProxyConfig(
+        ProxyConfig.fromPayload(initialProxyPayload),
+      );
+    }
+  }
 
   final receivePort = ReceivePort();
   final worker = _DownloadWorker(mainSendPort: sendPort);
@@ -315,6 +356,11 @@ class _DownloadWorker {
         return;
       case WorkerMessageType.delete:
         await _deleteTasks(List<String>.from(message.payload as List));
+        return;
+      case WorkerMessageType.proxy:
+        DesktopProxyCoordinator.applyProxyConfig(
+          ProxyConfig.fromPayload(message.payload as Map),
+        );
         return;
     }
   }

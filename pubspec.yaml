@@ -36,8 +36,6 @@ dependencies:
     git:
       url: https://github.com/raoxwup/photo_view.git
       ref: d951ef08d4461a778ac3c95da2e4d1fe7a2e6881
-  # photo_view:
-  #   path: D:/Projects/practice/Flutter/photo_view
   file_picker: ^10.3.8
   webdav_client: ^1.2.2
   window_manager: ^0.5.1
@@ -57,7 +55,7 @@ dependencies:
   extended_image: ^10.0.1
   flutter_displaymode: ^0.7.0
   logger: ^2.6.2
-  cached_network_image_ce: ^4.6.3
+  cached_network_image_ce: ^4.6.4
 
 dev_dependencies:
   flutter_test:
@@ -74,11 +72,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    # - assets/icons/splash/splash-icon-dark.png
-    # - assets/icons/splash/splash-icon-light.png
     - assets/images/login.png
     - assets/images/icon_empty.png
-    # - assets/images/icon_no_comment.png
     - assets/images/user.png
     - assets/images/leaderboard.jpg
     - assets/images/forum.jpg

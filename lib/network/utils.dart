@@ -28,7 +28,7 @@ enum ImageQuality {
 
 enum Api {
   app('https://picaapi.picacomic.com/', '直连'),
-  web('https://api.go2778.com/', '代理');
+  web('https://picaapi.go2778.com/', '代理');
 
   final String host;
   final String alias;
