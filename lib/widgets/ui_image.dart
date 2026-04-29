@@ -1,10 +1,10 @@
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:haka_comic/router/route_observer.dart';
 import 'package:haka_comic/utils/extension.dart';
 import 'package:pool/pool.dart';
 
-class _UiImage extends StatelessWidget {
+class _UiImage extends StatefulWidget {
   const _UiImage({
     required this.url,
     this.fit = BoxFit.cover,
@@ -45,63 +45,80 @@ class _UiImage extends StatelessWidget {
   final VoidCallback? onFinally;
 
   @override
+  State<_UiImage> createState() => _UiImageState();
+}
+
+class _UiImageState extends State<_UiImage> {
+  int _reloadToken = 0;
+
+  @override
   Widget build(BuildContext context) {
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    return ExtendedImage.network(
-      url,
-      cache: true,
-      fit: fit,
-      width: width,
-      height: height,
-      cacheWidth: ((width ?? cacheWidth) * devicePixelRatio).round(),
-      cacheHeight: cacheHeight,
-      shape: shape,
-      border: border,
-      borderRadius: borderRadius,
-      clipBehavior: clipBehavior,
-      timeRetry: const Duration(milliseconds: 300),
-      filterQuality: filterQuality,
-      loadStateChanged: (state) {
-        final loadState = state.extendedImageLoadState;
+    final memCacheWidth =
+        ((widget.width ?? widget.cacheWidth) * devicePixelRatio).round();
 
-        if (loadState == LoadState.completed || loadState == LoadState.failed) {
-          onFinally?.call();
-        }
-
-        if (loadState == LoadState.failed) {
-          return Container(
-            color: context.colorScheme.surfaceContainerHigh,
-            child: Center(
-              child: IconButton(
-                onPressed: state.reLoadImage,
-                icon: const Icon(Icons.refresh),
-              ),
-            ),
-          );
-        }
-
-        if (loadState == LoadState.completed) {
-          return Container(
-            color: context.colorScheme.surfaceContainerHigh,
-            child: TweenAnimationBuilder<double>(
-              key: ValueKey(state.extendedImageInfo),
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOutQuad,
-              builder: (context, value, child) {
-                return Opacity(opacity: value, child: child);
-              },
-              child: state.completedWidget,
-            ),
-          );
-        }
-
-        if (loadState == LoadState.loading) {
-          return Container(color: context.colorScheme.surfaceContainerHigh);
-        }
-
-        return null;
+    return CachedNetworkImage(
+      key: ValueKey('${widget.url}#$_reloadToken'),
+      imageUrl: widget.url,
+      fit: widget.fit,
+      width: widget.width,
+      height: widget.height,
+      memCacheWidth: memCacheWidth,
+      memCacheHeight: widget.cacheHeight,
+      filterQuality: widget.filterQuality,
+      fadeInDuration: const Duration(milliseconds: 250),
+      fadeInCurve: Curves.easeOutQuad,
+      disablePlaceholderOnCacheHit: true,
+      placeholder: (context, url) => _frame(context),
+      imageBuilder: (context, imageProvider) {
+        widget.onFinally?.call();
+        return _frame(
+          context,
+          child: Image(
+            key: ValueKey(imageProvider),
+            image: imageProvider,
+            fit: widget.fit,
+            width: widget.width,
+            height: widget.height,
+            filterQuality: widget.filterQuality,
+          ),
+        );
       },
+      errorBuilder: (context, error, stackTrace) {
+        widget.onFinally?.call();
+        return _frame(
+          context,
+          child: Center(
+            child: IconButton(
+              onPressed: _reload,
+              icon: const Icon(Icons.refresh),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _reload() async {
+    await CachedNetworkImage.evictFromCache(widget.url);
+    if (mounted) {
+      setState(() => _reloadToken++);
+    }
+  }
+
+  Widget _frame(BuildContext context, {Widget? child}) {
+    final shape = widget.shape ?? BoxShape.rectangle;
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      clipBehavior: widget.clipBehavior,
+      decoration: BoxDecoration(
+        color: context.colorScheme.surfaceContainerHigh,
+        shape: shape,
+        border: widget.border,
+        borderRadius: shape == BoxShape.circle ? null : widget.borderRadius,
+      ),
+      child: child,
     );
   }
 }
@@ -151,10 +168,10 @@ class UiImage extends StatefulWidget {
   final Widget? placeholder;
 
   @override
-  State<UiImage> createState() => _UiImageState();
+  State<UiImage> createState() => _UiImageOuterState();
 }
 
-class _UiImageState extends State<UiImage> with RouteAware {
+class _UiImageOuterState extends State<UiImage> with RouteAware {
   PoolResource? _resource;
   bool _ready = false;
   bool _isDisposed = false;
@@ -191,7 +208,6 @@ class _UiImageState extends State<UiImage> with RouteAware {
   @override
   void didPopNext() {
     if (_resource == null) {
-      // setState(() => _ready = false);
       _acquire();
     }
   }
@@ -240,7 +256,9 @@ class _UiImageState extends State<UiImage> with RouteAware {
             height: widget.height,
             decoration: BoxDecoration(
               color: context.colorScheme.surfaceContainerHigh,
-              borderRadius: widget.borderRadius,
+              borderRadius: widget.shape == BoxShape.circle
+                  ? null
+                  : widget.borderRadius,
               shape: widget.shape ?? BoxShape.rectangle,
               border: widget.border,
             ),

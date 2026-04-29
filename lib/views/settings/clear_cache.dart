@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +8,8 @@ import 'package:haka_comic/views/settings/widgets/menu_list_tile.dart';
 import 'package:haka_comic/widgets/toast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:extended_image/extended_image.dart';
+
+const _cachedNetworkImageCeCacheFolderName = 'cached_network_image_ce';
 
 class ClearCache extends StatefulWidget {
   const ClearCache({super.key});
@@ -24,9 +26,31 @@ class _ClearCacheState extends State<ClearCache> {
   // 获取缓存目录
   Future<List<String>> _getCacheDirs() async {
     final tempDir = await getTemporaryDirectory();
-    final path = p.join(tempDir.path, cacheImageFolderName);
+    final cachedNetworkImageCeCachePath = p.join(
+      tempDir.path,
+      _cachedNetworkImageCeCacheFolderName,
+    );
     final cacheDir = await getApplicationCacheDirectory();
-    return [path, cacheDir.path];
+    return _normalizeCacheDirs([cachedNetworkImageCeCachePath, cacheDir.path]);
+  }
+
+  static List<String> _normalizeCacheDirs(List<String> dirPaths) {
+    final normalizedDirs = <String>[];
+    for (final dirPath in dirPaths) {
+      final normalizedPath = p.normalize(dirPath);
+      final isCovered = normalizedDirs.any(
+        (existingPath) =>
+            p.equals(existingPath, normalizedPath) ||
+            p.isWithin(existingPath, normalizedPath),
+      );
+      if (isCovered) continue;
+
+      normalizedDirs.removeWhere(
+        (existingPath) => p.isWithin(normalizedPath, existingPath),
+      );
+      normalizedDirs.add(normalizedPath);
+    }
+    return normalizedDirs;
   }
 
   // 计算缓存大小
@@ -68,6 +92,7 @@ class _ClearCacheState extends State<ClearCache> {
     setState(() => _isClearing = true);
     try {
       final paths = await _getCacheDirs();
+      await CachedNetworkImageProvider.defaultCacheManager.emptyCache();
       await compute(_clearCache, paths);
       _loadCacheSize(); // 重新加载大小
       Toast.show(message: '缓存已清理');

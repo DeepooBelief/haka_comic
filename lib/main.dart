@@ -181,6 +181,7 @@ class _AppState extends State<App> with WindowListener {
         brightness: brightness,
         fontFamily: '霞鹜文楷',
         fontFamilyFallback: [
+          'Segoe UI Variable',
           'Segoe UI',
           'PingFang SC',
           'Noto Sans SC',
