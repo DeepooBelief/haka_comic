@@ -56,7 +56,7 @@ class AppConf {
   bool _pagination = true;
 
   /// Api
-  Api _api = Api.web;
+  Api _api = Api.go2778;
 
   /// 漫画块大小
   double _scale = 1.0;
@@ -146,8 +146,7 @@ class AppConf {
     instance._windowWidth = prefsWithCache.getDouble('windowWidth');
     instance._windowHeight = prefsWithCache.getDouble('windowHeight');
     instance._interval = prefsWithCache.getInt('interval') ?? 5;
-    instance._scrollSpeed =
-        prefsWithCache.getDouble('scrollSpeed') ?? 2.0;
+    instance._scrollSpeed = prefsWithCache.getDouble('scrollSpeed') ?? 2.0;
     instance._themeMode = prefsWithCache.getString('theme_mode') ?? 'System';
     instance._primaryColor =
         prefsWithCache.getString('primary_color') ?? 'System';

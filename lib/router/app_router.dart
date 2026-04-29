@@ -30,7 +30,9 @@ import 'package:haka_comic/views/random/random.dart' show Random;
 import 'package:haka_comic/views/rank/rank.dart';
 import 'package:haka_comic/views/reader/reader.dart';
 import 'package:haka_comic/views/search/search.dart';
+import 'package:haka_comic/views/settings/api_settings.dart';
 import 'package:haka_comic/views/settings/blacklist.dart';
+import 'package:haka_comic/views/settings/block_settings.dart';
 import 'package:haka_comic/views/settings/logs.dart';
 import 'package:haka_comic/views/settings/tag_block.dart';
 import 'package:haka_comic/views/settings/visible_categories.dart';
@@ -163,25 +165,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/notifications', builder: (_, _) => const Notifications()),
     GoRoute(path: '/tag_block', builder: (_, _) => const TagBlock()),
     GoRoute(path: '/word_block', builder: (_, _) => const WordBlock()),
-    // GoRoute(
-    //   path: '/gesture_area',
-    //   builder: (_, _) => const GestureArea(),
-    //   routes: [
-    //     GoRoute(
-    //       path: 'details/:type',
-    //       builder: (_, state) {
-    //         final type = GestureAreaType.fromName(state.pathParameters['type']);
-    //         return GestureAreaDetails(type: type);
-    //       },
-    //     ),
-    //   ],
-    // ),
     GoRoute(
       path: '/local_favorites',
       builder: (_, _) => const LocalFavorites(),
     ),
     GoRoute(path: '/logs', builder: (_, _) => const Logs()),
     GoRoute(path: '/import_comics', builder: (_, _) => const ImportComics()),
+    GoRoute(path: '/api_settings', builder: (_, _) => const ApiSettings()),
+    GoRoute(path: '/block_settings', builder: (_, _) => const BlockSettings()),
   ],
 );
 
