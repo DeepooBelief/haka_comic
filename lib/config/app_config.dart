@@ -107,6 +107,9 @@ class AppConf {
   /// 预加载的图片数量
   int _preloadImageCount = 4;
 
+  /// 菜单是否已锁定
+  bool _menuLocked = false;
+
   bool get isLogged => _token.isNotEmpty;
   bool get hasAccount => _email.isNotEmpty && _password.isNotEmpty;
 
@@ -162,6 +165,7 @@ class AppConf {
         prefsWithCache.getBool('enablePageAnimation') ?? true;
     instance._preloadImageCount =
         prefsWithCache.getInt('preloadImageCount') ?? 4;
+    instance._menuLocked = prefsWithCache.getBool('menuLocked') ?? false;
   }
 
   set email(String value) {
@@ -359,6 +363,11 @@ class AppConf {
     SharedPreferencesUtil.prefsWithCache.setInt('preloadImageCount', value);
   }
 
+  set menuLocked(bool value) {
+    _menuLocked = value;
+    SharedPreferencesUtil.prefsWithCache.setBool('menuLocked', value);
+  }
+
   String get email => _email;
   String get password => _password;
   String get token => _token;
@@ -396,6 +405,7 @@ class AppConf {
   bool get enableGesture => _enableGesture;
   bool get enablePageAnimation => _enablePageAnimation;
   int get preloadImageCount => _preloadImageCount;
+  bool get menuLocked => _menuLocked;
 
   /// 清除token
   void clearAuth() {
