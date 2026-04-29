@@ -49,7 +49,7 @@ final GoRouter appRouter = GoRouter(
     final isLoggedIn = AppConf.instance.isLogged;
     final currentPath = state.matchedLocation; // 获取当前匹配的路由路径
 
-    final allowPaths = ['/login', '/register'];
+    final allowPaths = ['/login', '/register', '/api_settings'];
 
     if (!isLoggedIn &&
         !allowPaths.any((path) => currentPath.startsWith(path))) {
