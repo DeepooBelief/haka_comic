@@ -1,10 +1,10 @@
 import 'dart:ui';
-import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:haka_comic/utils/extension.dart';
 import 'package:haka_comic/widgets/ui_avatar.dart';
+import 'package:haka_comic/widgets/ui_image.dart';
 
 class ProFile extends StatelessWidget {
   const ProFile({super.key, required this.user});
@@ -40,21 +40,12 @@ class ProFile extends StatelessWidget {
                     ).createShader(bounds);
                   },
                   blendMode: BlendMode.dstIn,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        fit: BoxFit.cover,
-                        image: user.avatar != null
-                            ? ExtendedNetworkImageProvider(
-                                user.avatar!.url,
-                                cache: true,
-                              )
-                            : const AssetImage(
-                                'assets/images/default_avatar.jpg',
-                              ),
-                      ),
-                    ),
-                  ),
+                  child: user.avatar != null
+                      ? UiImage(url: user.avatar!.url, fit: BoxFit.cover)
+                      : Image.asset(
+                          'assets/images/default_avatar.jpg',
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
             ),

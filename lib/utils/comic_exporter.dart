@@ -18,6 +18,8 @@ enum ExportFileType { pdf, zip }
 
 typedef ComicExportItem = ({String fileStem, String sourceFolderPath});
 
+const String exportFileTempDir = 'export_temp';
+
 class ComicExporter {
   ComicExporter._();
 
@@ -109,7 +111,7 @@ class ComicExporter {
 
     for (final item in items) {
       final fileName = '${item.fileStem}.${type.name}';
-      final destPath = p.join(cacheDir.path, fileName);
+      final destPath = p.join(cacheDir.path, exportFileTempDir, fileName);
 
       await _buildFile(
         sourceFolderPath: item.sourceFolderPath,
@@ -218,7 +220,7 @@ class ComicExporter {
 
   static Future<Directory> _createCleanTempDirectory() async {
     final cacheDir = await getApplicationCacheDirectory();
-    final tempDir = Directory(p.join(cacheDir.path, 'temp_export'));
+    final tempDir = Directory(p.join(cacheDir.path, exportFileTempDir));
 
     if (await tempDir.exists()) {
       await tempDir.delete(recursive: true);

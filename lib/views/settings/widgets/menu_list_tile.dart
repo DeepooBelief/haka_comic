@@ -9,6 +9,7 @@ class MenuListTile<T> extends StatelessWidget {
     required this.value,
     required this.items,
     this.onSelected,
+    this.subtitle,
   }) : onTap = null;
 
   const MenuListTile.withAction({
@@ -17,6 +18,7 @@ class MenuListTile<T> extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.value,
+    this.subtitle,
   }) : items = null,
        onSelected = null;
 
@@ -26,11 +28,13 @@ class MenuListTile<T> extends StatelessWidget {
   final List<PopupMenuEntry<T>>? items;
   final ValueChanged<T>? onSelected;
   final VoidCallback? onTap;
+  final Widget? subtitle;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(title),
+      subtitle: subtitle,
       leading: icon == null
           ? null
           : Container(

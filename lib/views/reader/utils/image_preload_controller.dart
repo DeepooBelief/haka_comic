@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
 import 'package:haka_comic/views/reader/state/comic_state.dart';
 
@@ -93,9 +93,9 @@ class ImagePreloadController<T> {
 
         final url = urlResolver(items[i]);
         final ImageProvider provider = type == ReaderType.network
-            ? ExtendedNetworkImageProvider(url, cache: true)
-            : ExtendedFileImageProvider(File(url));
-        precacheImage(provider, context);
+            ? CachedNetworkImageProvider(url)
+            : FileImage(File(url));
+        precacheImage(provider, context, onError: (_, _) {});
       }
     });
   }

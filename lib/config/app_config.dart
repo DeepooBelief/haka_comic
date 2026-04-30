@@ -56,7 +56,7 @@ class AppConf {
   bool _pagination = true;
 
   /// Api
-  Api _api = Api.web;
+  Api _api = Api.go2778;
 
   /// 漫画块大小
   double _scale = 1.0;
@@ -107,6 +107,9 @@ class AppConf {
   /// 预加载的图片数量
   int _preloadImageCount = 4;
 
+  /// 菜单是否已锁定
+  bool _menuLocked = false;
+
   bool get isLogged => _token.isNotEmpty;
   bool get hasAccount => _email.isNotEmpty && _password.isNotEmpty;
 
@@ -146,8 +149,7 @@ class AppConf {
     instance._windowWidth = prefsWithCache.getDouble('windowWidth');
     instance._windowHeight = prefsWithCache.getDouble('windowHeight');
     instance._interval = prefsWithCache.getInt('interval') ?? 5;
-    instance._scrollSpeed =
-        prefsWithCache.getDouble('scrollSpeed') ?? 2.0;
+    instance._scrollSpeed = prefsWithCache.getDouble('scrollSpeed') ?? 2.0;
     instance._themeMode = prefsWithCache.getString('theme_mode') ?? 'System';
     instance._primaryColor =
         prefsWithCache.getString('primary_color') ?? 'System';
@@ -163,6 +165,7 @@ class AppConf {
         prefsWithCache.getBool('enablePageAnimation') ?? true;
     instance._preloadImageCount =
         prefsWithCache.getInt('preloadImageCount') ?? 4;
+    instance._menuLocked = prefsWithCache.getBool('menuLocked') ?? false;
   }
 
   set email(String value) {
@@ -360,6 +363,11 @@ class AppConf {
     SharedPreferencesUtil.prefsWithCache.setInt('preloadImageCount', value);
   }
 
+  set menuLocked(bool value) {
+    _menuLocked = value;
+    SharedPreferencesUtil.prefsWithCache.setBool('menuLocked', value);
+  }
+
   String get email => _email;
   String get password => _password;
   String get token => _token;
@@ -397,6 +405,7 @@ class AppConf {
   bool get enableGesture => _enableGesture;
   bool get enablePageAnimation => _enablePageAnimation;
   int get preloadImageCount => _preloadImageCount;
+  bool get menuLocked => _menuLocked;
 
   /// 清除token
   void clearAuth() {

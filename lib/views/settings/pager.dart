@@ -19,6 +19,7 @@ class _PagerState extends State<Pager> {
       icon: Icons.unfold_more_outlined,
       title: '分页模式',
       value: _pagination ? '分页' : '连续',
+      subtitle: const Text('设置列表是无限滚动还是分页加载'),
       items: maps.entries.map((entry) {
         return PopupMenuItem(
           value: entry.value,
