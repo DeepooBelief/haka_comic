@@ -16,13 +16,23 @@ void main() {
     updated_at: '',
     id: 'chapter-id',
   );
+  final nextChapter = Chapter(
+    uid: 'next-chapter-uid',
+    title: 'Chapter 2',
+    order: 2,
+    updated_at: '',
+    id: 'next-chapter-id',
+  );
 
-  ReaderProvider createProvider(List<ComicReadRecord> savedRecords) {
+  ReaderProvider createProvider(
+    List<ComicReadRecord> savedRecords, {
+    List<Chapter>? chapters,
+  }) {
     return ReaderProvider(
       state: ComicState(
         id: 'comic-id',
         title: 'Comic',
-        chapters: [chapter],
+        chapters: chapters ?? [chapter],
         chapter: chapter,
         pageNo: 0,
       ),
@@ -64,6 +74,30 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(savedRecords, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'smooth scroll waits while the vertical list controller is detached',
+    (tester) async {
+      final provider = createProvider(
+        <ComicReadRecord>[],
+        chapters: [chapter, nextChapter],
+      );
+
+      provider.handler.mutate([
+        LocalImage(uid: 'page-1', id: 'page-1', url: 'page-1.jpg'),
+        LocalImage(uid: 'page-2', id: 'page-2', url: 'page-2.jpg'),
+      ]);
+
+      provider.startSmoothScroll(const TestVSync());
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(provider.isPageTurning, isTrue);
+      expect(provider.isSmoothScroll, isTrue);
+
+      provider.stopPageTurn();
     },
   );
 }

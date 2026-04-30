@@ -1,15 +1,16 @@
 import 'dart:io';
 import 'dart:math';
-import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:haka_comic/utils/comic_exporter.dart';
 import 'package:haka_comic/views/settings/widgets/menu_list_tile.dart';
 import 'package:haka_comic/widgets/toast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 const _cachedNetworkImageCeCacheFolderName = 'cached_network_image_ce';
+const _cachedNetworkImageCeHiveName = 'hive';
 
 class ClearCache extends StatefulWidget {
   const ClearCache({super.key});
@@ -31,26 +32,8 @@ class _ClearCacheState extends State<ClearCache> {
       _cachedNetworkImageCeCacheFolderName,
     );
     final cacheDir = await getApplicationCacheDirectory();
-    return _normalizeCacheDirs([cachedNetworkImageCeCachePath, cacheDir.path]);
-  }
-
-  static List<String> _normalizeCacheDirs(List<String> dirPaths) {
-    final normalizedDirs = <String>[];
-    for (final dirPath in dirPaths) {
-      final normalizedPath = p.normalize(dirPath);
-      final isCovered = normalizedDirs.any(
-        (existingPath) =>
-            p.equals(existingPath, normalizedPath) ||
-            p.isWithin(existingPath, normalizedPath),
-      );
-      if (isCovered) continue;
-
-      normalizedDirs.removeWhere(
-        (existingPath) => p.isWithin(normalizedPath, existingPath),
-      );
-      normalizedDirs.add(normalizedPath);
-    }
-    return normalizedDirs;
+    final exportTemp = p.join(cacheDir.path, exportFileTempDir);
+    return [cachedNetworkImageCeCachePath, exportTemp];
   }
 
   // 计算缓存大小
@@ -61,6 +44,10 @@ class _ClearCacheState extends State<ClearCache> {
       if (dir.existsSync()) {
         final files = dir.listSync(recursive: true);
         for (var file in files) {
+          if (file.path.contains(_cachedNetworkImageCeHiveName)) {
+            // 跳过 Hive 数据库目录，不计算其大小
+            continue;
+          }
           if (file is File) {
             totalSize += file.lengthSync();
           }
@@ -70,11 +57,21 @@ class _ClearCacheState extends State<ClearCache> {
     return totalSize;
   }
 
-  static void _clearCache(List<String> dirPaths) {
+  static Future<void> _clearCache(List<String> dirPaths) async {
     for (var dirPath in dirPaths) {
       final cacheDir = Directory(dirPath);
       if (cacheDir.existsSync()) {
-        cacheDir.deleteSync(recursive: true);
+        cacheDir.listSync().forEach((item) {
+          if (item is File) {
+            item.deleteSync();
+          } else if (item is Directory) {
+            if (p.basename(item.path) == _cachedNetworkImageCeHiveName) {
+              // 跳过 Hive 数据库目录，不删除
+              return;
+            }
+            item.deleteSync(recursive: true);
+          }
+        });
       }
     }
   }
@@ -92,11 +89,11 @@ class _ClearCacheState extends State<ClearCache> {
     setState(() => _isClearing = true);
     try {
       final paths = await _getCacheDirs();
-      await CachedNetworkImageProvider.defaultCacheManager.emptyCache();
       await compute(_clearCache, paths);
       _loadCacheSize(); // 重新加载大小
       Toast.show(message: '缓存已清理');
     } catch (e) {
+      print(e);
       Toast.show(message: '清理缓存失败');
     } finally {
       setState(() => _isClearing = false);

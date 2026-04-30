@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:haka_comic/views/reader/providers/list_state_provider.dart';
 import 'package:haka_comic/views/reader/providers/reader_provider.dart';
@@ -265,7 +266,7 @@ class PageSlider extends StatelessWidget {
       canRequestFocus: false,
       descendantsAreFocusable: false,
       child: Slider(
-        value: value.toDouble(),
+        value: clampDouble(value.toDouble(), 0, (total - 1).toDouble()),
         min: 0,
         max: (total - 1).toDouble(),
         divisions: total - 1,

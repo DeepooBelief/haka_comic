@@ -240,6 +240,8 @@ class ReaderProvider extends RequestProvider {
 
   /// VerticalList 跳转 offset
   void pageTurnForVertical(double offset) {
+    if (!itemScrollController.isAttached) return;
+
     if (pageNo == 0 && offset < 0) {
       if (!isFirstChapter) {
         goPrevious();
@@ -393,6 +395,7 @@ class ReaderProvider extends RequestProvider {
     _smoothTicker?.dispose();
     _smoothTicker = vsync.createTicker((_) {
       if (handler.state case Loading()) return;
+      if (!itemScrollController.isAttached) return;
       if (pageNo == images.length - 1) {
         if (!isLastChapter) {
           goNext();

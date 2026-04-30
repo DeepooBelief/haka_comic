@@ -20,6 +20,8 @@ class VerticalList extends StatefulWidget {
 }
 
 class _VerticalListState extends State<VerticalList> with ComicListMixin {
+  static const double _zoomClarityScale = 3.0;
+
   /// 列表控制
   final itemPositionsListener = ItemPositionsListener.create();
 
@@ -70,56 +72,72 @@ class _VerticalListState extends State<VerticalList> with ComicListMixin {
       child: GestureWrapper(
         openOrCloseToolbar: context.reader.openOrCloseToolbar,
         jumpOffset: context.reader.pageTurnForVertical,
-        child: FractionallySizedBox(
-          widthFactor: widthRatio.clamp(0.0, 1.0),
-          child: ScrollablePositionedList.builder(
-            initialScrollIndex: pageNo,
-            padding: EdgeInsets.zero,
-            physics: physics,
-            itemCount: pageCount + 1,
-            addAutomaticKeepAlives: false,
-            minCacheExtent: screenHeight * 2,
-            itemScrollController: context.reader.itemScrollController,
-            itemPositionsListener: itemPositionsListener,
-            scrollOffsetController: context.reader.scrollOffsetController,
-            itemBuilder: (context, index) {
-              if (index == pageCount) {
-                return const Padding(
-                  padding: EdgeInsetsGeometry.symmetric(vertical: 16.0),
-                  child: Text(
-                    '本章完',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              }
-              final item = images[index];
-              final imageSize = _imageSizeCache[item.uid];
-              return ReaderImage(
-                key: ValueKey(item.uid),
-                url: item.url,
-                onImageSizeChanged: (width, height) {
-                  if (_imageSizeCache[item.uid] == null) {
-                    final size = ImageSize(
-                      width: width,
-                      height: height,
-                      imageId: item.uid,
-                      cid: cid,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final widthFactor = widthRatio.clamp(0.0, 1.0);
+            final listWidth = constraints.maxWidth * widthFactor;
+            final cacheWidth = _targetCacheWidth(context, listWidth);
+
+            return FractionallySizedBox(
+              widthFactor: widthFactor,
+              child: ScrollablePositionedList.builder(
+                initialScrollIndex: pageNo,
+                padding: EdgeInsets.zero,
+                physics: physics,
+                itemCount: pageCount + 1,
+                addAutomaticKeepAlives: false,
+                minCacheExtent: screenHeight * 2,
+                itemScrollController: context.reader.itemScrollController,
+                itemPositionsListener: itemPositionsListener,
+                scrollOffsetController: context.reader.scrollOffsetController,
+                itemBuilder: (context, index) {
+                  if (index == pageCount) {
+                    return const Padding(
+                      padding: EdgeInsetsGeometry.symmetric(vertical: 16.0),
+                      child: Text(
+                        '本章完',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     );
-                    insertImageSize(size);
-                    _imageSizeCache[item.uid] = size;
                   }
+                  final item = images[index];
+                  final imageSize = _imageSizeCache[item.uid];
+                  return ReaderImage(
+                    key: ValueKey(item.uid),
+                    url: item.url,
+                    cacheWidth: cacheWidth,
+                    onImageSizeChanged: (width, height) {
+                      if (_imageSizeCache[item.uid] == null) {
+                        final size = ImageSize(
+                          width: width,
+                          height: height,
+                          imageId: item.uid,
+                          cid: cid,
+                        );
+                        insertImageSize(size);
+                        _imageSizeCache[item.uid] = size;
+                      }
+                    },
+                    imageSize: imageSize,
+                  );
                 },
-                imageSize: imageSize,
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
+  }
+
+  int? _targetCacheWidth(BuildContext context, double logicalWidth) {
+    if (logicalWidth <= 0 || !logicalWidth.isFinite) return null;
+
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    return (logicalWidth * devicePixelRatio * _zoomClarityScale).ceil();
   }
 
   /// 处理列表项位置变化

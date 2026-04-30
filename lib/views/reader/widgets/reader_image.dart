@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:haka_comic/database/images_helper.dart';
@@ -13,6 +14,7 @@ class ReaderImage extends StatefulWidget {
     this.enableCache = true,
     this.fit = BoxFit.contain,
     this.filterQuality = FilterQuality.medium,
+    this.cacheWidth,
     this.timeRetry = const Duration(milliseconds: 300),
     required this.onImageSizeChanged,
   });
@@ -27,6 +29,7 @@ class ReaderImage extends StatefulWidget {
   // 是否使用缓存的尺寸
   final bool enableCache;
   final FilterQuality filterQuality;
+  final int? cacheWidth;
   final Duration timeRetry;
 
   // 尺寸回调
@@ -38,9 +41,12 @@ class ReaderImage extends StatefulWidget {
 
 class _ReaderImageState extends State<ReaderImage> {
   static const double _fallbackAspectRatio = 3 / 4;
+  static const int _maxAutoRetryCount = 2;
 
   bool _isReported = false;
   int _reloadToken = 0;
+  int _autoRetryCount = 0;
+  Timer? _retryTimer;
   ImageProvider? _listeningProvider;
   ImageStream? _imageStream;
   ImageStreamListener? _imageStreamListener;
@@ -56,11 +62,14 @@ class _ReaderImageState extends State<ReaderImage> {
     if (oldWidget.url != widget.url) {
       _resetImageReport();
       _reloadToken = 0;
+      _autoRetryCount = 0;
+      _retryTimer?.cancel();
     }
   }
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     _removeImageSizeListener();
     super.dispose();
   }
@@ -92,9 +101,17 @@ class _ReaderImageState extends State<ReaderImage> {
 
   Widget _buildProgressPlaceholder(DownloadProgress progress) {
     final value = progress.progress ?? computeProgress(progress.downloaded);
+    return _buildProgressIndicator(value);
+  }
+
+  Widget _buildRetryProgressPlaceholder() {
+    return _buildProgressIndicator(null);
+  }
+
+  Widget _buildProgressIndicator(double? value) {
     return _buildPlaceholder(
       CircularProgressIndicator(
-        value: value,
+        value: value ?? 0.0,
         strokeWidth: 3,
         constraints: BoxConstraints.tight(const Size(28, 28)),
         backgroundColor: Colors.grey.shade300,
@@ -102,6 +119,16 @@ class _ReaderImageState extends State<ReaderImage> {
         strokeCap: StrokeCap.round,
       ),
     );
+  }
+
+  bool get _hasAutoRetryRemaining => _autoRetryCount < _maxAutoRetryCount;
+
+  Widget _buildRetryAwareErrorPlaceholder(VoidCallback onReload) {
+    _scheduleAutoRetry();
+    if (_hasAutoRetryRemaining || _retryTimer?.isActive == true) {
+      return _buildRetryProgressPlaceholder();
+    }
+    return _buildErrorPlaceholder(onReload);
   }
 
   void _listenForImageSize(ImageProvider provider) {
@@ -123,6 +150,7 @@ class _ReaderImageState extends State<ReaderImage> {
         _removeImageSizeListener();
       },
       onError: (_, _) {
+        _scheduleAutoRetry();
         _removeImageSizeListener();
       },
     );
@@ -149,7 +177,23 @@ class _ReaderImageState extends State<ReaderImage> {
     _isReported = false;
   }
 
+  void _scheduleAutoRetry() {
+    if (_autoRetryCount >= _maxAutoRetryCount ||
+        _retryTimer?.isActive == true) {
+      return;
+    }
+
+    _autoRetryCount++;
+    _retryTimer = Timer(widget.timeRetry, () {
+      if (!mounted) return;
+      _resetImageReport();
+      setState(() => _reloadToken++);
+    });
+  }
+
   Future<void> _reloadNetworkImage() async {
+    _retryTimer?.cancel();
+    _autoRetryCount = 0;
     _resetImageReport();
     await CachedNetworkImage.evictFromCache(widget.url);
     if (mounted) {
@@ -158,6 +202,8 @@ class _ReaderImageState extends State<ReaderImage> {
   }
 
   Future<void> _reloadLocalImage() async {
+    _retryTimer?.cancel();
+    _autoRetryCount = 0;
     _resetImageReport();
     await FileImage(File(widget.url)).evict();
     if (mounted) {
@@ -171,7 +217,9 @@ class _ReaderImageState extends State<ReaderImage> {
       imageUrl: widget.url,
       fit: widget.fit,
       filterQuality: widget.filterQuality,
+      memCacheWidth: widget.cacheWidth,
       fadeInDuration: const Duration(milliseconds: 200),
+      fadeOutDuration: Duration.zero,
       disablePlaceholderOnCacheHit: false,
       progressIndicatorBuilder: (context, url, progress) {
         return _buildProgressPlaceholder(progress);
@@ -186,13 +234,17 @@ class _ReaderImageState extends State<ReaderImage> {
         );
       },
       errorBuilder: (context, error, stackTrace) {
-        return _buildErrorPlaceholder(_reloadNetworkImage);
+        return _buildRetryAwareErrorPlaceholder(_reloadNetworkImage);
       },
     );
   }
 
   Widget _buildLocalImage() {
-    final provider = FileImage(File(widget.url));
+    final provider = ResizeImage.resizeIfNeeded(
+      widget.cacheWidth,
+      null,
+      FileImage(File(widget.url)),
+    );
     _listenForImageSize(provider);
 
     return Image(
@@ -207,7 +259,7 @@ class _ReaderImageState extends State<ReaderImage> {
         return _buildPlaceholder(const SizedBox.expand());
       },
       errorBuilder: (context, error, stackTrace) {
-        return _buildErrorPlaceholder(_reloadLocalImage);
+        return _buildRetryAwareErrorPlaceholder(_reloadLocalImage);
       },
     );
   }
