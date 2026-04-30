@@ -53,6 +53,16 @@ void main() {
     expect(source, isNot(contains('clearMemoryImageCache')));
   });
 
+  test('horizontal reader avoids duplicate image size writes', () {
+    final source = File(
+      'lib/views/reader/widgets/horizontal_list/horizontal_list.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('final Set<String> _reportedImageSizeIds = {};'));
+    expect(source, contains('bool _reportImageSizeOnce('));
+    expect(source, contains('_reportImageSizeOnce('));
+  });
+
   test('vertical reader decodes with double-tap zoom clarity headroom', () {
     final source = File(
       'lib/views/reader/widgets/vertical_list/vertical_list.dart',

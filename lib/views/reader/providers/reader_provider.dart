@@ -222,6 +222,7 @@ class ReaderProvider extends RequestProvider {
 
   /// 更新当前页码并保存阅读记录，[index]始终保持为单页页码方便计算
   void onPageNoChanged(int index) {
+    if (_pendingReadRecordPageNo == index) return;
     if (index == pageNo && _pendingReadRecordPageNo == null) return;
     _pageNoTimer?.cancel();
     if (index != pageNo) {

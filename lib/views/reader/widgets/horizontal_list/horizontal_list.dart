@@ -25,6 +25,8 @@ class HorizontalList extends StatefulWidget {
 }
 
 class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
+  final Set<String> _reportedImageSizeIds = {};
+
   /// 获取当前章节ID
   String get cid => context.reader.id;
 
@@ -171,13 +173,11 @@ class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
                         );
                       },
                       onImageFrame: (info, synchronousCall) {
-                        final imageSize = ImageSize(
-                          imageId: item.uid,
-                          width: info.image.width,
-                          height: info.image.height,
-                          cid: cid,
+                        _reportImageSizeOnce(
+                          item,
+                          info.image.width,
+                          info.image.height,
                         );
-                        insertImageSize(imageSize);
                       },
                     );
                   }
@@ -225,6 +225,18 @@ class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
     await FileImage(File(item.url)).evict();
   }
 
+  bool _reportImageSizeOnce(ImageBase item, int width, int height) {
+    if (!_reportedImageSizeIds.add(item.uid)) return false;
+    final imageSize = ImageSize(
+      imageId: item.uid,
+      width: width,
+      height: height,
+      cid: cid,
+    );
+    insertImageSize(imageSize);
+    return true;
+  }
+
   Widget buildPageImages(List<ImageBase> images, bool isReverse) {
     final correctImages = isReverse ? images.reversed.toList() : images;
     final children = correctImages.asMap().entries.map((entry) {
@@ -240,13 +252,7 @@ class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
             url: item.url,
             enableCache: false,
             onImageSizeChanged: (width, height) {
-              final size = ImageSize(
-                width: width,
-                height: height,
-                imageId: item.uid,
-                cid: cid,
-              );
-              insertImageSize(size);
+              _reportImageSizeOnce(item, width, height);
             },
           ),
         ),

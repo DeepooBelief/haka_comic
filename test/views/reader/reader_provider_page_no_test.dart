@@ -78,6 +78,22 @@ void main() {
   );
 
   testWidgets(
+    'does not restart read record debounce for the same pending page',
+    (tester) async {
+      final savedRecords = <ComicReadRecord>[];
+      final provider = createProvider(savedRecords);
+
+      provider.onPageNoChanged(3);
+      await tester.pump(const Duration(milliseconds: 25));
+      provider.onPageNoChanged(3);
+      await tester.pump(const Duration(milliseconds: 25));
+
+      expect(savedRecords, hasLength(1));
+      expect(savedRecords.single.pageNo, 3);
+    },
+  );
+
+  testWidgets(
     'smooth scroll waits while the vertical list controller is detached',
     (tester) async {
       final provider = createProvider(

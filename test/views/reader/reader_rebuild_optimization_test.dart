@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haka_comic/database/read_record_helper.dart';
 import 'package:haka_comic/network/models.dart';
@@ -9,6 +11,7 @@ import 'package:haka_comic/views/reader/providers/reader_provider.dart';
 import 'package:haka_comic/views/reader/state/comic_state.dart';
 import 'package:haka_comic/views/reader/widgets/bottom.dart';
 import 'package:haka_comic/views/reader/widgets/next_chapter.dart';
+import 'package:haka_comic/views/reader/widgets/reader_keyboard_listener.dart';
 import 'package:haka_comic/views/reader/widgets/vertical_list/gesture.dart';
 import 'package:provider/provider.dart';
 
@@ -142,5 +145,44 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(rebuilds, 0);
+  });
+
+  test('ReaderKeyboardListener owns one persistent FocusNode', () {
+    final source = File(
+      'lib/views/reader/widgets/reader_keyboard_listener.dart',
+    ).readAsStringSync();
+
+    expect(
+      source,
+      contains('class ReaderKeyboardListener extends StatefulWidget'),
+    );
+    expect(source, contains('late final FocusNode _focusNode'));
+    expect(source, contains('_focusNode.dispose()'));
+    expect(source, isNot(contains('focusNode: FocusNode()..requestFocus()')));
+  });
+
+  testWidgets('ReaderKeyboardListener keeps key handling after rebuild', (
+    tester,
+  ) async {
+    var count = 0;
+
+    Widget build() {
+      return ChangeNotifierProvider<ListStateProvider>.value(
+        value: ListStateProvider(),
+        child: MaterialApp(
+          home: ReaderKeyboardListener(
+            handlers: {LogicalKeyboardKey.keyD: () => count++},
+            child: const SizedBox.expand(),
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(build());
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyD);
+    await tester.pumpWidget(build());
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyD);
+
+    expect(count, 2);
   });
 }
