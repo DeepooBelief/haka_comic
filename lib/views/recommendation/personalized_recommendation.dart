@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:haka_comic/network/models.dart';
 import 'package:haka_comic/utils/extension.dart';
-import 'package:haka_comic/views/comics/list_item.dart';
+import 'package:haka_comic/views/comics/common_tmi_list.dart';
 import 'package:haka_comic/views/recommendation/recommendation_engine.dart';
 
 class PersonalizedRecommendation extends StatefulWidget {
@@ -81,13 +81,8 @@ class _PersonalizedRecommendationState
 
         return RefreshIndicator(
           onRefresh: () async => _refresh(),
-          child: ListView.builder(
-            padding: EdgeInsets.only(
-              top: context.top,
-              bottom: context.bottom,
-            ),
-            itemCount: docs.length,
-            itemBuilder: (context, index) => ListItem(doc: docs[index]),
+          child: CommonTMIList(
+            comics: docs,
           ),
         );
       },
