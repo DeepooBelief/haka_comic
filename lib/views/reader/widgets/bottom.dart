@@ -18,7 +18,7 @@ class ReaderBottom extends StatefulWidget {
 }
 
 class _ReaderBottomState extends State<ReaderBottom>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final bottom = context.bottom;
