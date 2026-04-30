@@ -4,6 +4,7 @@ import 'package:haka_comic/utils/ui.dart';
 import 'package:haka_comic/views/categories/categories.dart';
 import 'package:haka_comic/views/home/navigation.dart';
 import 'package:haka_comic/views/mine/mine.dart';
+import 'package:haka_comic/views/recommendation/personalized_recommendation.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -43,6 +44,7 @@ class _HomeState extends State<Home> {
                     Categories(
                       isRouteAnimationCompleted: isRouteAnimationCompleted,
                     ),
+                    const PersonalizedRecommendation(),
                     const Mine(),
                   ],
                 ),

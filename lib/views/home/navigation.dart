@@ -28,6 +28,11 @@ class AppNavigationBar extends StatelessWidget {
           selectedIcon: Icon(Icons.category),
         ),
         const NavigationDestination(
+          icon: Icon(Icons.auto_awesome_outlined),
+          label: '推荐',
+          selectedIcon: Icon(Icons.auto_awesome),
+        ),
+        const NavigationDestination(
           icon: Icon(Icons.person_outline),
           label: '我的',
           selectedIcon: Icon(Icons.person),
@@ -81,10 +86,18 @@ class AppNavigationBar extends StatelessWidget {
                 _SideMenuItem(
                   selected: selectedIndex == 1,
                   icon: selectedIndex == 1
+                      ? Icons.auto_awesome
+                      : Icons.auto_awesome_outlined,
+                  label: '推荐',
+                  onTap: () => onDestinationSelected(1),
+                ),
+                _SideMenuItem(
+                  selected: selectedIndex == 2,
+                  icon: selectedIndex == 2
                       ? Icons.person
                       : Icons.person_outline,
                   label: '我的',
-                  onTap: () => onDestinationSelected(1),
+                  onTap: () => onDestinationSelected(2),
                 ),
                 const Spacer(),
                 Padding(
@@ -197,15 +210,15 @@ class AppHeaderBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = ['分类', '我的'][selectedIndex];
-    final isCategory = title == '分类';
+    final title = ['分类', '推荐', '我的'][selectedIndex];
+    final isMine = title == '我的';
     final systemUiOverlayStyle = Theme.brightnessOf(context) == Brightness.light
         ? SystemUiOverlayStyle.dark
         : SystemUiOverlayStyle.light;
     return AppBar(
       title: Text(title),
-      backgroundColor: isCategory ? null : Colors.transparent,
-      systemOverlayStyle: isCategory ? null : systemUiOverlayStyle,
+      backgroundColor: isMine ? Colors.transparent : null,
+      systemOverlayStyle: isMine ? systemUiOverlayStyle : null,
       actions: [
         IconButton(
           onPressed: () => context.push('/search'),

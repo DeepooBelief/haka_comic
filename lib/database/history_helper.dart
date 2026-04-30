@@ -233,6 +233,13 @@ class HistoryHelper with ChangeNotifier, DbBackupMixin {
     return counts;
   }
 
+  Future<List<HistoryDoc>> queryAllForScoring() async {
+    final result = await db.getAll(
+      'SELECT $_historySelectColumns FROM history',
+    );
+    return result.map(_toHistoryDoc).toList();
+  }
+
   @override
   Future<void> restore(File file) async {
     await super.restore(file);
