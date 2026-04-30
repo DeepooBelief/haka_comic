@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:haka_comic/config/app_config.dart';
 import 'package:haka_comic/utils/request/request_state.dart';
 import 'package:haka_comic/views/reader/providers/list_state_provider.dart';
 import 'package:haka_comic/views/reader/providers/reader_provider.dart';
@@ -102,6 +103,9 @@ class _ChapterSwipeDetectorState extends State<ChapterSwipeDetector> {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = AppConf().enableChapterSwipe;
+    if (!enabled) return widget.child;
+
     final isFirst = context.selector<bool>((p) => p.isFirstChapter);
     final isLast = context.selector<bool>((p) => p.isLastChapter);
     final screenW = MediaQuery.sizeOf(context).width;

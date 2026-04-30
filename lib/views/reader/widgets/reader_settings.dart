@@ -13,6 +13,7 @@ class ReaderSettings extends StatefulWidget {
 class _ReaderSettingsState extends State<ReaderSettings> {
   final slipFactor = ValueNotifier(AppConf().slipFactor);
   final enableGesture = ValueNotifier(AppConf().enableGesture);
+  final enableChapterSwipe = ValueNotifier(AppConf().enableChapterSwipe);
   final enablePageAnimation = ValueNotifier(AppConf().enablePageAnimation);
   final enableVolume = ValueNotifier(AppConf().enableVolume);
   final verticalCenterFraction = ValueNotifier(
@@ -106,6 +107,20 @@ class _ReaderSettingsState extends State<ReaderSettings> {
                   },
                   title: const Text('点击翻页'),
                   subtitle: const Text('启用时，点击屏幕特定区域可以翻页。'),
+                );
+              },
+            ),
+            ValueListenableBuilder(
+              valueListenable: enableChapterSwipe,
+              builder: (context, value, child) {
+                return SwitchListTile(
+                  value: value,
+                  onChanged: (value) {
+                    AppConf().enableChapterSwipe = value;
+                    enableChapterSwipe.value = value;
+                  },
+                  title: const Text('边缘滑动切换章节'),
+                  subtitle: const Text('启用时，从屏幕左/右边缘向内滑动可切换上/下一章。仅在"连续从上到下"阅读模式下生效。'),
                 );
               },
             ),

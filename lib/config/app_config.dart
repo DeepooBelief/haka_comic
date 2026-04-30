@@ -104,6 +104,9 @@ class AppConf {
   /// 是否启用翻页动画
   bool _enablePageAnimation = true;
 
+  /// 是否启用边缘滑动切换章节
+  bool _enableChapterSwipe = true;
+
   /// 预加载的图片数量
   int _preloadImageCount = 4;
 
@@ -161,6 +164,8 @@ class AppConf {
     instance._enableGesture = prefsWithCache.getBool('enableGesture') ?? true;
     instance._enablePageAnimation =
         prefsWithCache.getBool('enablePageAnimation') ?? true;
+    instance._enableChapterSwipe =
+        prefsWithCache.getBool('enableChapterSwipe') ?? true;
     instance._preloadImageCount =
         prefsWithCache.getInt('preloadImageCount') ?? 4;
   }
@@ -355,6 +360,11 @@ class AppConf {
     SharedPreferencesUtil.prefsWithCache.setBool('enablePageAnimation', value);
   }
 
+  set enableChapterSwipe(bool value) {
+    _enableChapterSwipe = value;
+    SharedPreferencesUtil.prefsWithCache.setBool('enableChapterSwipe', value);
+  }
+
   set preloadImageCount(int value) {
     _preloadImageCount = value;
     SharedPreferencesUtil.prefsWithCache.setInt('preloadImageCount', value);
@@ -396,6 +406,7 @@ class AppConf {
   bool get showPageNumbers => _showPageNumbers;
   bool get enableGesture => _enableGesture;
   bool get enablePageAnimation => _enablePageAnimation;
+  bool get enableChapterSwipe => _enableChapterSwipe;
   int get preloadImageCount => _preloadImageCount;
 
   /// 清除token
