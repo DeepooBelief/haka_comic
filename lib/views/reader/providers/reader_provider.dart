@@ -29,16 +29,27 @@ extension BuildContextReader on BuildContext {
 typedef FetchImageHandler =
     RequestHandlerWithParams<List<ImageBase>, FetchChapterImagesPayload>;
 
+typedef FetchImages =
+    Future<List<ImageBase>> Function(FetchChapterImagesPayload payload);
+
 class ReaderProvider extends RequestProvider {
-  ReaderProvider({required ComicState state}) {
+  ReaderProvider({
+    required ComicState state,
+    FetchImages? fetchImages,
+    Future<void> Function(ComicReadRecord record)? saveReadRecord,
+    Duration readRecordDebounceDuration = const Duration(milliseconds: 50),
+  }) {
     id = state.id;
     title = state.title;
     chapters = state.chapters;
     chapter = state.chapter;
     pageNo = state.pageNo;
     type = state.type;
+    _saveReadRecord = saveReadRecord ?? _helper.insert;
+    _readRecordDebounceDuration = readRecordDebounceDuration;
 
     final Future<List<ImageBase>> Function(FetchChapterImagesPayload) request =
+        fetchImages ??
         switch (type) {
           ReaderType.network => fetchChapterImages,
           ReaderType.local => fetchLocalImages,
@@ -192,14 +203,21 @@ class ReaderProvider extends RequestProvider {
   final _helper = ReadRecordHelper();
 
   Timer? _pageNoTimer;
+  int? _pendingReadRecordPageNo;
+  late final Future<void> Function(ComicReadRecord record) _saveReadRecord;
+  late final Duration _readRecordDebounceDuration;
 
   /// 更新当前页码并保存阅读记录，[index]始终保持为单页页码方便计算
   void onPageNoChanged(int index) {
-    if (index == pageNo) return;
+    if (index == pageNo && _pendingReadRecordPageNo == null) return;
     _pageNoTimer?.cancel();
-    _pageNoTimer = Timer(const Duration(milliseconds: 50), () async {
+    if (index != pageNo) {
       pageNo = index;
-      _helper.insert(
+    }
+    _pendingReadRecordPageNo = index;
+    _pageNoTimer = Timer(_readRecordDebounceDuration, () async {
+      _pendingReadRecordPageNo = null;
+      _saveReadRecord(
         ComicReadRecord(
           cid: id,
           chapterId: chapter.id,

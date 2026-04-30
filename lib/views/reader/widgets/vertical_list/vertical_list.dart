@@ -8,6 +8,7 @@ import 'package:haka_comic/views/reader/providers/reader_provider.dart';
 import 'package:haka_comic/views/reader/widgets/reader_image.dart';
 import 'package:haka_comic/views/reader/widgets/vertical_list/chapter_swipe_detector.dart';
 import 'package:haka_comic/views/reader/widgets/vertical_list/gesture.dart';
+import 'package:haka_comic/views/reader/widgets/vertical_list/page_index.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /// 条漫模式
@@ -67,53 +68,56 @@ class _VerticalListState extends State<VerticalList> with ComicListMixin {
 
     return ChapterSwipeDetector(
       child: GestureWrapper(
-      openOrCloseToolbar: context.reader.openOrCloseToolbar,
-      jumpOffset: context.reader.pageTurnForVertical,
-      child: FractionallySizedBox(
-        widthFactor: widthRatio.clamp(0.0, 1.0),
-        child: ScrollablePositionedList.builder(
-          initialScrollIndex: pageNo,
-          padding: EdgeInsets.zero,
-          physics: physics,
-          itemCount: pageCount + 1,
-          addAutomaticKeepAlives: false,
-          minCacheExtent: screenHeight * 2,
-          itemScrollController: context.reader.itemScrollController,
-          itemPositionsListener: itemPositionsListener,
-          scrollOffsetController: context.reader.scrollOffsetController,
-          itemBuilder: (context, index) {
-            if (index == pageCount) {
-              return const Padding(
-                padding: EdgeInsetsGeometry.symmetric(vertical: 16.0),
-                child: Text(
-                  '本章完',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-                ),
+        openOrCloseToolbar: context.reader.openOrCloseToolbar,
+        jumpOffset: context.reader.pageTurnForVertical,
+        child: FractionallySizedBox(
+          widthFactor: widthRatio.clamp(0.0, 1.0),
+          child: ScrollablePositionedList.builder(
+            initialScrollIndex: pageNo,
+            padding: EdgeInsets.zero,
+            physics: physics,
+            itemCount: pageCount + 1,
+            addAutomaticKeepAlives: false,
+            minCacheExtent: screenHeight * 2,
+            itemScrollController: context.reader.itemScrollController,
+            itemPositionsListener: itemPositionsListener,
+            scrollOffsetController: context.reader.scrollOffsetController,
+            itemBuilder: (context, index) {
+              if (index == pageCount) {
+                return const Padding(
+                  padding: EdgeInsetsGeometry.symmetric(vertical: 16.0),
+                  child: Text(
+                    '本章完',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              }
+              final item = images[index];
+              final imageSize = _imageSizeCache[item.uid];
+              return ReaderImage(
+                key: ValueKey(item.uid),
+                url: item.url,
+                onImageSizeChanged: (width, height) {
+                  if (_imageSizeCache[item.uid] == null) {
+                    final size = ImageSize(
+                      width: width,
+                      height: height,
+                      imageId: item.uid,
+                      cid: cid,
+                    );
+                    insertImageSize(size);
+                    _imageSizeCache[item.uid] = size;
+                  }
+                },
+                imageSize: imageSize,
               );
-            }
-            final item = images[index];
-            final imageSize = _imageSizeCache[item.uid];
-            return ReaderImage(
-              key: ValueKey(item.uid),
-              url: item.url,
-              onImageSizeChanged: (width, height) {
-                if (_imageSizeCache[item.uid] == null) {
-                  final size = ImageSize(
-                    width: width,
-                    height: height,
-                    imageId: item.uid,
-                    cid: cid,
-                  );
-                  insertImageSize(size);
-                  _imageSizeCache[item.uid] = size;
-                }
-              },
-              imageSize: imageSize,
-            );
-          },
+            },
+          ),
         ),
-      ),
       ),
     );
   }
@@ -123,22 +127,16 @@ class _VerticalListState extends State<VerticalList> with ComicListMixin {
     final positions = itemPositionsListener.itemPositions.value;
     if (positions.isEmpty) return;
 
-    final visibleIndices = positions
-        .where(
-          (pos) => pos.itemTrailingEdge > 0.0 && pos.itemTrailingEdge <= 1.0,
-        )
-        .map((position) => position.index)
-        .toList();
-
+    final visibleIndices = visibleVerticalImageIndices(
+      positions,
+      imageCount: context.reader.images.length,
+    );
     if (visibleIndices.isEmpty) return;
 
-    visibleIndices.sort();
     int lastIndex = visibleIndices.last;
 
     context.reader.preloadController.onAnchorChanged(visibleIndices);
 
-    context.reader.onPageNoChanged(
-      lastIndex.clamp(0, context.reader.images.length - 1),
-    );
+    context.reader.onPageNoChanged(lastIndex);
   }
 }

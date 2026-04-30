@@ -171,9 +171,8 @@ class _ReaderImageState extends State<ReaderImage> {
       imageUrl: widget.url,
       fit: widget.fit,
       filterQuality: widget.filterQuality,
-      fadeInDuration: const Duration(milliseconds: 250),
-      fadeInCurve: Curves.easeOutQuad,
-      disablePlaceholderOnCacheHit: true,
+      fadeInDuration: const Duration(milliseconds: 200),
+      disablePlaceholderOnCacheHit: false,
       progressIndicatorBuilder: (context, url, progress) {
         return _buildProgressPlaceholder(progress);
       },
