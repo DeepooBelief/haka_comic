@@ -20,8 +20,6 @@ class VerticalList extends StatefulWidget {
 }
 
 class _VerticalListState extends State<VerticalList> with ComicListMixin {
-  static const double _zoomClarityScale = 3.0;
-
   /// 列表控制
   final itemPositionsListener = ItemPositionsListener.create();
 
@@ -74,8 +72,6 @@ class _VerticalListState extends State<VerticalList> with ComicListMixin {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final widthFactor = widthRatio.clamp(0.0, 1.0);
-          final listWidth = constraints.maxWidth * widthFactor;
-          final cacheWidth = _targetCacheWidth(context, listWidth);
 
           return FractionallySizedBox(
             widthFactor: widthFactor,
@@ -108,7 +104,6 @@ class _VerticalListState extends State<VerticalList> with ComicListMixin {
                 return ReaderImage(
                   key: ValueKey(item.uid),
                   url: item.url,
-                  cacheWidth: cacheWidth,
                   onImageSizeChanged: (width, height) {
                     if (_imageSizeCache[item.uid] == null) {
                       final size = ImageSize(
@@ -129,13 +124,6 @@ class _VerticalListState extends State<VerticalList> with ComicListMixin {
         },
       ),
     );
-  }
-
-  int? _targetCacheWidth(BuildContext context, double logicalWidth) {
-    if (logicalWidth <= 0 || !logicalWidth.isFinite) return null;
-
-    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    return (logicalWidth * devicePixelRatio * _zoomClarityScale).ceil();
   }
 
   /// 处理列表项位置变化

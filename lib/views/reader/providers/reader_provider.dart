@@ -145,7 +145,20 @@ class ReaderProvider extends RequestProvider {
   List<ImageBase> get images => handler.state.data ?? [];
 
   ///多页模式下章节图片
-  List<List<ImageBase>> get multiPageImages => splitList(images, 2);
+  List<ImageBase>? _multiPageImagesSource;
+  List<List<ImageBase>>? _multiPageImagesCache;
+  List<List<ImageBase>> get multiPageImages {
+    final source = images;
+    final cache = _multiPageImagesCache;
+    if (cache != null && identical(source, _multiPageImagesSource)) {
+      return cache;
+    }
+
+    final next = splitList(source, 2);
+    _multiPageImagesSource = source;
+    _multiPageImagesCache = next;
+    return next;
+  }
 
   /// 章节总页数
   int get pageCount =>

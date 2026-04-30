@@ -100,4 +100,21 @@ void main() {
       provider.stopPageTurn();
     },
   );
+
+  test('caches multiPageImages for the current images list', () {
+    final provider = createProvider(<ComicReadRecord>[]);
+    provider.handler.mutate([
+      LocalImage(uid: 'page-1', id: 'page-1', url: 'page-1.jpg'),
+      LocalImage(uid: 'page-2', id: 'page-2', url: 'page-2.jpg'),
+      LocalImage(uid: 'page-3', id: 'page-3', url: 'page-3.jpg'),
+    ]);
+
+    final first = provider.multiPageImages;
+    final second = provider.multiPageImages;
+
+    expect(identical(first, second), isTrue);
+    expect(first, hasLength(2));
+    expect(first[0].map((image) => image.uid), ['page-1', 'page-2']);
+    expect(first[1].map((image) => image.uid), ['page-3']);
+  });
 }
