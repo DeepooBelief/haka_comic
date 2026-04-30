@@ -24,6 +24,18 @@ class _ReaderSettingsState extends State<ReaderSettings> {
   final preloadImageCount = ValueNotifier(AppConf().preloadImageCount);
 
   @override
+  void dispose() {
+    slipFactor.dispose();
+    enableGesture.dispose();
+    enablePageAnimation.dispose();
+    enableVolume.dispose();
+    verticalCenterFraction.dispose();
+    horizontalCenterFraction.dispose();
+    preloadImageCount.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final showPageNumbers = context.stateSelector((p) => p.showPageNumbers);
 
