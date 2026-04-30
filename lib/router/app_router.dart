@@ -26,6 +26,7 @@ import 'package:haka_comic/views/mine/comments.dart';
 import 'package:haka_comic/views/mine/editor.dart';
 import 'package:haka_comic/views/mine/favorites.dart';
 import 'package:haka_comic/views/mine/history.dart';
+import 'package:haka_comic/views/mine/tag_statistics.dart';
 import 'package:haka_comic/views/random/random.dart' show Random;
 import 'package:haka_comic/views/rank/rank.dart';
 import 'package:haka_comic/views/reader/reader.dart';
@@ -120,6 +121,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/random', builder: (_, _) => const Random()),
     GoRoute(path: '/favorites', builder: (_, _) => const Favorites()),
     GoRoute(path: '/history', builder: (_, _) => const History()),
+    GoRoute(path: '/tag_statistics', builder: (_, _) => const TagStatistics()),
     GoRoute(path: '/downloads', builder: (_, _) => const Downloads()),
     ShellRoute(
       pageBuilder: (c, s, child) => buildSideSheetRoutePage(c, s, child),

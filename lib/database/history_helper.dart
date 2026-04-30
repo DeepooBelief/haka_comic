@@ -220,6 +220,19 @@ class HistoryHelper with ChangeNotifier, DbBackupMixin {
     return result['count'] as int;
   }
 
+  Future<Map<String, int>> queryAllTags() async {
+    final result = await db.getAll('SELECT tags FROM history');
+    final counts = <String, int>{};
+    for (final row in result) {
+      final tags = (jsonDecode(row['tags'] as String? ?? '[]') as List)
+          .cast<String>();
+      for (final tag in tags) {
+        if (tag.isNotEmpty) counts[tag] = (counts[tag] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   @override
   Future<void> restore(File file) async {
     await super.restore(file);

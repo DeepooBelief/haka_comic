@@ -47,6 +47,11 @@ class _MineState extends State<Mine> {
             route: '/personal_comments',
           ),
           const _MenuItem(
+            icon: Icons.local_offer_outlined,
+            title: '标签统计',
+            route: '/tag_statistics',
+          ),
+          const _MenuItem(
             icon: Icons.bookmark,
             title: '本地收藏夹',
             route: '/local_favorites',
