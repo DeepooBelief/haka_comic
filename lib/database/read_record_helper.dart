@@ -21,6 +21,13 @@ final migrations = SqliteMigrations()
           ON read_record (cid);
         ''');
     }),
+  )
+  ..add(
+    SqliteMigration(2, (tx) async {
+      await tx.execute('''
+          ALTER TABLE read_record ADD COLUMN chapter_no INTEGER DEFAULT 1;
+        ''');
+    }),
   );
 
 class ReadRecordHelper with ChangeNotifier, DbBackupMixin {
@@ -44,14 +51,15 @@ class ReadRecordHelper with ChangeNotifier, DbBackupMixin {
       await db.writeTransaction((tx) async {
         await tx.execute(
           '''
-          INSERT INTO read_record (cid, chapter_id, chapter_title, page_no)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO read_record (cid, chapter_id, chapter_title, page_no, chapter_no)
+          VALUES (?, ?, ?, ?, ?)
           ON CONFLICT(cid) DO UPDATE SET
             chapter_id = excluded.chapter_id,
             chapter_title = excluded.chapter_title,
-            page_no = excluded.page_no
+            page_no = excluded.page_no,
+            chapter_no = excluded.chapter_no
           ''',
-          [record.cid, record.chapterId, record.chapterTitle, record.pageNo],
+          [record.cid, record.chapterId, record.chapterTitle, record.pageNo, record.chapterNo],
         );
       });
       notifyListeners();
@@ -68,6 +76,22 @@ class ReadRecordHelper with ChangeNotifier, DbBackupMixin {
     );
     return result == null ? null : ComicReadRecord.fromJson(result);
   }
+
+  /// Returns a map of cid → (chapterNo, pageNo) for every comic the user
+  /// has actually opened in the reader. Comics only visited on the detail
+  /// page will NOT appear here.
+  Future<Map<String, ({int chapterNo, int pageNo})>> queryAllPageNos() async {
+    final rows = await db.getAll(
+      'SELECT cid, chapter_no, page_no FROM read_record',
+    );
+    return {
+      for (final r in rows)
+        r['cid'] as String: (
+          chapterNo: (r['chapter_no'] as int?) ?? 1,
+          pageNo: r['page_no'] as int,
+        ),
+    };
+  }
 }
 
 class ComicReadRecord {
@@ -75,12 +99,15 @@ class ComicReadRecord {
   final String chapterId;
   final String chapterTitle;
   final int pageNo;
+  /// 1-based ordinal index of the chapter within the comic's chapter list.
+  final int chapterNo;
 
   ComicReadRecord({
     required this.cid,
     required this.chapterId,
     required this.pageNo,
     required this.chapterTitle,
+    this.chapterNo = 1,
   });
 
   Map<String, dynamic> toJson() => {
@@ -88,6 +115,7 @@ class ComicReadRecord {
     'chapterId': chapterId,
     'pageNo': pageNo,
     'chapterTitle': chapterTitle,
+    'chapterNo': chapterNo,
   };
 
   factory ComicReadRecord.fromJson(Map<String, dynamic> json) =>
@@ -96,5 +124,6 @@ class ComicReadRecord {
         chapterId: json['chapter_id'] as String,
         chapterTitle: json['chapter_title'] as String,
         pageNo: json['page_no'] as int,
+        chapterNo: (json['chapter_no'] as int?) ?? 1,
       );
 }

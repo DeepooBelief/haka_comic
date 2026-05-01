@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:haka_comic/database/history_helper.dart';
+import 'package:haka_comic/database/read_record_helper.dart';
 import 'package:haka_comic/network/http.dart';
 import 'package:haka_comic/network/models.dart';
 
@@ -28,10 +29,16 @@ class RecommendationEngine {
   final _rng = Random();
 
   Future<List<Doc>> compute() async {
-    final history = await HistoryHelper().queryAllForScoring();
+    final results = await Future.wait([
+      HistoryHelper().queryAllForScoring(),
+      ReadRecordHelper().queryAllPageNos(),
+    ]);
+    final history = results[0] as List<HistoryDoc>;
+    final pageNos = results[1] as Map<String, ({int chapterNo, int pageNo})>;
+
     if (history.isEmpty) return [];
 
-    // cids already read – use uid which equals the stored cid
+    // All history cids are excluded from candidates (user has seen them).
     final readCids = history.map((h) => h.uid).toSet();
 
     final now = DateTime.now();
@@ -40,6 +47,11 @@ class RecommendationEngine {
     final authorScores = <String, double>{};
 
     for (final h in history) {
+      // Skip comics the user only visited on the detail page and never read.
+      // read_record is only written when the user actually turns a page.
+      final record = pageNos[h.uid];
+      if (record == null) continue;
+
       // Parse SQLite DATETIME string "YYYY-MM-DD HH:MM:SS"
       DateTime updatedAt;
       try {
@@ -51,7 +63,15 @@ class RecommendationEngine {
       final days = now.difference(updatedAt).inDays.clamp(0, 365);
       final recency = exp(-days / 30.0);
       final completion = h.finished ? 1.5 : 1.0;
-      final engagement = (h.pagesCount / 20.0).clamp(0.5, 3.0);
+
+      // Estimate total pages read across all chapters.
+      // avg pages per chapter = pagesCount / epsCount (both from history).
+      // For single-chapter comics epsCount == 1, so this reduces to pageNo.
+      final avgPagesPerChapter =
+          h.epsCount > 1 ? (h.pagesCount / h.epsCount) : 20.0;
+      final estimatedPagesRead =
+          (record.chapterNo - 1) * avgPagesPerChapter + record.pageNo;
+      final engagement = (estimatedPagesRead / 20.0).clamp(0.5, 3.0);
       final w = recency * completion * engagement;
 
       for (final tag in h.tags) {

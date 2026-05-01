@@ -205,6 +205,9 @@ class ReaderProvider extends RequestProvider {
           chapterId: chapter.id,
           pageNo: index,
           chapterTitle: chapter.title,
+          // chapterIndex is 0-based; store as 1-based so default 1 means
+          // "first chapter" for legacy rows without this column.
+          chapterNo: chapterIndex + 1,
         ),
       );
     });
