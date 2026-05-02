@@ -82,6 +82,12 @@ class _LoginState extends State<Login> with RequestMixin {
           ),
         ),
       ),
+      // persistentFooterButtons: [
+      //   IconButton(
+      //     onPressed: () => context.push('/settings'),
+      //     icon: const Icon(Icons.settings),
+      //   ),
+      // ],
     );
   }
 
@@ -148,6 +154,11 @@ class _LoginState extends State<Login> with RequestMixin {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                TextButton(
+                  onPressed: () => context.push('/api_settings'),
+                  child: const Text('API切换'),
+                ),
+                const Spacer(),
                 const Text('没有账号？'),
                 TextButton(
                   onPressed: () => context.push('/register'),

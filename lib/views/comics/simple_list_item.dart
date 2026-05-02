@@ -77,7 +77,9 @@ class SimpleListItem extends StatelessWidget {
         padding: const EdgeInsets.all(2),
         decoration: isSelected
             ? BoxDecoration(
-                color: context.colorScheme.secondaryContainer.withValues(alpha: 0.65),
+                color: context.colorScheme.secondaryContainer.withValues(
+                  alpha: 0.65,
+                ),
                 borderRadius: BorderRadius.circular(12),
               )
             : null,

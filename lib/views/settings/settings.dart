@@ -7,7 +7,6 @@ import 'package:haka_comic/views/settings/change_password.dart';
 import 'package:haka_comic/views/settings/clear_cache.dart';
 import 'package:haka_comic/views/settings/comic_block_scale.dart';
 import 'package:haka_comic/views/settings/logout.dart';
-import 'package:haka_comic/views/settings/network.dart';
 import 'package:haka_comic/views/settings/pager.dart';
 import 'package:haka_comic/views/settings/theme.dart' as t;
 import 'package:haka_comic/views/settings/theme_color.dart';
@@ -32,26 +31,22 @@ class Settings extends StatelessWidget {
               children: [
                 const ChangePassword(),
                 const ChangeImageQuality(),
-                const Network(),
+                MenuListTile.withAction(
+                  icon: Icons.network_check_outlined,
+                  title: 'API切换',
+                  onTap: () => context.push('/api_settings'),
+                  subtitle: const Text('修改访问的服务器地址'),
+                ),
                 MenuListTile.withAction(
                   icon: Icons.topic_outlined,
                   title: '显示的分类',
                   onTap: () => context.push('/visible_categories'),
-                ),
-                MenuListTile.withAction(
-                  icon: Icons.texture_outlined,
-                  title: '分类屏蔽',
-                  onTap: () => context.push('/blacklist'),
+                  subtitle: const Text('可设置分类页显示哪些分类'),
                 ),
                 MenuListTile.withAction(
                   icon: Icons.label_off_outlined,
-                  title: 'Tag屏蔽',
-                  onTap: () => context.push('/tag_block'),
-                ),
-                MenuListTile.withAction(
-                  icon: Icons.spellcheck_outlined,
-                  title: '标题关键词屏蔽',
-                  onTap: () => context.push('/word_block'),
+                  title: '屏蔽',
+                  onTap: () => context.push('/block_settings'),
                 ),
               ],
             ),

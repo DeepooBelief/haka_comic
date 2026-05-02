@@ -34,6 +34,7 @@ class _BrowseModeState extends State<BrowseMode> {
       icon: Icons.view_day_outlined,
       title: '漫画块',
       value: _mode.displayName,
+      subtitle: const Text('选择列表中漫画块的显示模式'),
       items: ComicBlockMode.values.map((mode) {
         return PopupMenuItem(
           value: mode,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:haka_comic/views/reader/providers/list_state_provider.dart';
 import 'package:haka_comic/views/reader/providers/reader_provider.dart';
@@ -17,7 +18,7 @@ class ReaderBottom extends StatefulWidget {
 }
 
 class _ReaderBottomState extends State<ReaderBottom>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final bottom = context.bottom;
@@ -41,7 +42,7 @@ class _ReaderBottomState extends State<ReaderBottom>
                 alpha: 0.6,
               ),
             ),
-            child: _buildContent(context),
+            child: _buildContent(context, showToolbar: showToolbar),
           ),
         ),
       );
@@ -68,7 +69,7 @@ class _ReaderBottomState extends State<ReaderBottom>
                   alpha: 0.6,
                 ),
               ),
-              child: _buildContent(context),
+              child: _buildContent(context, showToolbar: showToolbar),
             ),
           ),
         ),
@@ -76,17 +77,20 @@ class _ReaderBottomState extends State<ReaderBottom>
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context, {required bool showToolbar}) {
     final isPageTurning = context.selector((p) => p.isPageTurning);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
       child: isPageTurning
           ? _buildPageTurnContent(context)
-          : _buildCommonContent(context),
+          : _buildCommonContent(context, showPageSlider: showToolbar),
     );
   }
 
-  Widget _buildCommonContent(BuildContext context) {
+  Widget _buildCommonContent(
+    BuildContext context, {
+    required bool showPageSlider,
+  }) {
     final isFirstChapter = context.selector((p) => p.isFirstChapter);
     final isLastChapter = context.selector((p) => p.isLastChapter);
 
@@ -113,7 +117,11 @@ class _ReaderBottomState extends State<ReaderBottom>
               icon: const Icon(Icons.skip_previous),
               onPressed: previousAction,
             ),
-            const Expanded(child: PageSlider()),
+            Expanded(
+              child: showPageSlider
+                  ? const PageSlider()
+                  : const SizedBox.shrink(),
+            ),
             IconButton.filledTonal(
               icon: const Icon(Icons.skip_next),
               onPressed: nextAction,
@@ -265,7 +273,7 @@ class PageSlider extends StatelessWidget {
       canRequestFocus: false,
       descendantsAreFocusable: false,
       child: Slider(
-        value: value.toDouble(),
+        value: clampDouble(value.toDouble(), 0, (total - 1).toDouble()),
         min: 0,
         max: (total - 1).toDouble(),
         divisions: total - 1,

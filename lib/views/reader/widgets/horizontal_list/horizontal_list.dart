@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,6 +25,8 @@ class HorizontalList extends StatefulWidget {
 }
 
 class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
+  final Set<String> _reportedImageSizeIds = {};
+
   /// 获取当前章节ID
   String get cid => context.reader.id;
 
@@ -155,18 +157,15 @@ class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
                       minScale: PhotoViewComputedScale.contained * 1.0,
                       maxScale: PhotoViewComputedScale.covered * 4.0,
                       imageProvider: context.reader.type == ReaderType.network
-                          ? ExtendedNetworkImageProvider(
-                              item.url,
-                              timeRetry: const Duration(milliseconds: 300),
-                              cache: true,
-                            )
-                          : ExtendedFileImageProvider(File(item.url)),
+                          ? CachedNetworkImageProvider(item.url)
+                          : FileImage(File(item.url)),
                       filterQuality: FilterQuality.medium,
                       errorBuilder: (context, error, stackTrace, retry) {
                         return Center(
                           child: IconButton(
-                            onPressed: () {
-                              clearMemoryImageCache(item.url);
+                            onPressed: () async {
+                              await _evictImage(item);
+                              if (!mounted) return;
                               retry();
                             },
                             icon: const Icon(Icons.refresh),
@@ -174,13 +173,11 @@ class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
                         );
                       },
                       onImageFrame: (info, synchronousCall) {
-                        final imageSize = ImageSize(
-                          imageId: item.uid,
-                          width: info.image.width,
-                          height: info.image.height,
-                          cid: cid,
+                        _reportImageSizeOnce(
+                          item,
+                          info.image.width,
+                          info.image.height,
                         );
-                        insertImageSize(imageSize);
                       },
                     );
                   }
@@ -219,6 +216,27 @@ class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
     );
   }
 
+  Future<void> _evictImage(ImageBase item) async {
+    final isNetwork = context.reader.type == ReaderType.network;
+    if (isNetwork) {
+      await CachedNetworkImage.evictFromCache(item.url);
+      return;
+    }
+    await FileImage(File(item.url)).evict();
+  }
+
+  bool _reportImageSizeOnce(ImageBase item, int width, int height) {
+    if (!_reportedImageSizeIds.add(item.uid)) return false;
+    final imageSize = ImageSize(
+      imageId: item.uid,
+      width: width,
+      height: height,
+      cid: cid,
+    );
+    insertImageSize(imageSize);
+    return true;
+  }
+
   Widget buildPageImages(List<ImageBase> images, bool isReverse) {
     final correctImages = isReverse ? images.reversed.toList() : images;
     final children = correctImages.asMap().entries.map((entry) {
@@ -234,13 +252,7 @@ class _HorizontalListState extends State<HorizontalList> with ComicListMixin {
             url: item.url,
             enableCache: false,
             onImageSizeChanged: (width, height) {
-              final size = ImageSize(
-                width: width,
-                height: height,
-                imageId: item.uid,
-                cid: cid,
-              );
-              insertImageSize(size);
+              _reportImageSizeOnce(item, width, height);
             },
           ),
         ),

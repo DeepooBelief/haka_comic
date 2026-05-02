@@ -89,7 +89,9 @@ class ListItem extends StatelessWidget {
         padding: const .symmetric(vertical: 5, horizontal: 10),
         decoration: isSelected
             ? BoxDecoration(
-                color: context.colorScheme.secondaryContainer.withValues(alpha: 0.65),
+                color: context.colorScheme.secondaryContainer.withValues(
+                  alpha: 0.65,
+                ),
                 borderRadius: BorderRadius.circular(12),
               )
             : null,

@@ -29,16 +29,27 @@ extension BuildContextReader on BuildContext {
 typedef FetchImageHandler =
     RequestHandlerWithParams<List<ImageBase>, FetchChapterImagesPayload>;
 
+typedef FetchImages =
+    Future<List<ImageBase>> Function(FetchChapterImagesPayload payload);
+
 class ReaderProvider extends RequestProvider {
-  ReaderProvider({required ComicState state}) {
+  ReaderProvider({
+    required ComicState state,
+    FetchImages? fetchImages,
+    Future<void> Function(ComicReadRecord record)? saveReadRecord,
+    Duration readRecordDebounceDuration = const Duration(milliseconds: 50),
+  }) {
     id = state.id;
     title = state.title;
     chapters = state.chapters;
     chapter = state.chapter;
     pageNo = state.pageNo;
     type = state.type;
+    _saveReadRecord = saveReadRecord ?? _helper.insert;
+    _readRecordDebounceDuration = readRecordDebounceDuration;
 
     final Future<List<ImageBase>> Function(FetchChapterImagesPayload) request =
+        fetchImages ??
         switch (type) {
           ReaderType.network => fetchChapterImages,
           ReaderType.local => fetchLocalImages,
@@ -134,7 +145,20 @@ class ReaderProvider extends RequestProvider {
   List<ImageBase> get images => handler.state.data ?? [];
 
   ///多页模式下章节图片
-  List<List<ImageBase>> get multiPageImages => splitList(images, 2);
+  List<ImageBase>? _multiPageImagesSource;
+  List<List<ImageBase>>? _multiPageImagesCache;
+  List<List<ImageBase>> get multiPageImages {
+    final source = images;
+    final cache = _multiPageImagesCache;
+    if (cache != null && identical(source, _multiPageImagesSource)) {
+      return cache;
+    }
+
+    final next = splitList(source, 2);
+    _multiPageImagesSource = source;
+    _multiPageImagesCache = next;
+    return next;
+  }
 
   /// 章节总页数
   int get pageCount =>
@@ -192,14 +216,22 @@ class ReaderProvider extends RequestProvider {
   final _helper = ReadRecordHelper();
 
   Timer? _pageNoTimer;
+  int? _pendingReadRecordPageNo;
+  late final Future<void> Function(ComicReadRecord record) _saveReadRecord;
+  late final Duration _readRecordDebounceDuration;
 
   /// 更新当前页码并保存阅读记录，[index]始终保持为单页页码方便计算
   void onPageNoChanged(int index) {
-    if (index == pageNo) return;
+    if (_pendingReadRecordPageNo == index) return;
+    if (index == pageNo && _pendingReadRecordPageNo == null) return;
     _pageNoTimer?.cancel();
-    _pageNoTimer = Timer(const Duration(milliseconds: 50), () async {
+    if (index != pageNo) {
       pageNo = index;
-      _helper.insert(
+    }
+    _pendingReadRecordPageNo = index;
+    _pageNoTimer = Timer(_readRecordDebounceDuration, () async {
+      _pendingReadRecordPageNo = null;
+      _saveReadRecord(
         ComicReadRecord(
           cid: id,
           chapterId: chapter.id,
@@ -225,6 +257,8 @@ class ReaderProvider extends RequestProvider {
 
   /// VerticalList 跳转 offset
   void pageTurnForVertical(double offset) {
+    if (!itemScrollController.isAttached) return;
+
     if (pageNo == 0 && offset < 0) {
       if (!isFirstChapter) {
         goPrevious();
@@ -378,6 +412,7 @@ class ReaderProvider extends RequestProvider {
     _smoothTicker?.dispose();
     _smoothTicker = vsync.createTicker((_) {
       if (handler.state case Loading()) return;
+      if (!itemScrollController.isAttached) return;
       if (pageNo == images.length - 1) {
         if (!isLastChapter) {
           goNext();

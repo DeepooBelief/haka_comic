@@ -37,10 +37,11 @@ class ListStateProvider extends ChangeNotifier {
   }
 
   /// 锁定菜单
-  bool _lockMenu = false;
+  bool _lockMenu = AppConf().menuLocked;
   bool get lockMenu => _lockMenu;
   void toggleLockMenu() {
     _lockMenu = !_lockMenu;
+    AppConf().menuLocked = _lockMenu;
     notifyListeners();
     Toast.show(message: _lockMenu ? '菜单已锁定' : '菜单已解锁');
   }
