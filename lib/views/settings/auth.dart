@@ -16,11 +16,15 @@ class _AuthState extends State<Auth> {
   Widget build(BuildContext context) {
     return ListTile(
       title: const Text('身份验证'),
-      leading: CircleAvatar(
-        radius: 17,
-        backgroundColor: context.colorScheme.primary.withValues(alpha: .1),
-        child: const Icon(Icons.security_outlined, size: 22),
+      leading: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: context.colorScheme.primary.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.security_outlined, size: 22, weight: 700),
       ),
+      subtitle: const Text('开启后需要验证才能访问应用'),
       trailing: Switch(
         value: _needAuth,
         onChanged: (value) {

@@ -70,10 +70,10 @@ class ImageDetail {
   // web代理
   String get proxyUrl => directUrl.replaceFirst('picacomic', 'go2778');
 
-  String get url => AppConf().api == Api.app ? directUrl : proxyUrl;
+  String get url => AppConf().api == Api.picacomic ? directUrl : proxyUrl;
 
   String getIsolateDownloadUrl(Api api) {
-    return api == Api.app ? directUrl : proxyUrl;
+    return api == Api.picacomic ? directUrl : proxyUrl;
   }
 }
 
@@ -885,8 +885,9 @@ class ExtraRecommendComic {
 
   Map<String, dynamic> toJson() => {'id': id, 'title': title, 'pic': pic};
 
-  String get url =>
-      AppConf().api == Api.app ? pic : pic.replaceFirst('picacomic', 'go2778');
+  String get url => AppConf().api == Api.picacomic
+      ? pic
+      : pic.replaceFirst('picacomic', 'go2778');
 }
 
 class FetchChapterImagesPayload {

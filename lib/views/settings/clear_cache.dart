@@ -3,11 +3,14 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:haka_comic/utils/comic_exporter.dart';
 import 'package:haka_comic/views/settings/widgets/menu_list_tile.dart';
 import 'package:haka_comic/widgets/toast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:extended_image/extended_image.dart';
+
+const _cachedNetworkImageCeCacheFolderName = 'cached_network_image_ce';
+const _cachedNetworkImageCeHiveName = 'hive';
 
 class ClearCache extends StatefulWidget {
   const ClearCache({super.key});
@@ -24,9 +27,13 @@ class _ClearCacheState extends State<ClearCache> {
   // 获取缓存目录
   Future<List<String>> _getCacheDirs() async {
     final tempDir = await getTemporaryDirectory();
-    final path = p.join(tempDir.path, cacheImageFolderName);
+    final cachedNetworkImageCeCachePath = p.join(
+      tempDir.path,
+      _cachedNetworkImageCeCacheFolderName,
+    );
     final cacheDir = await getApplicationCacheDirectory();
-    return [path, cacheDir.path];
+    final exportTemp = p.join(cacheDir.path, exportFileTempDir);
+    return [cachedNetworkImageCeCachePath, exportTemp];
   }
 
   // 计算缓存大小
@@ -37,6 +44,10 @@ class _ClearCacheState extends State<ClearCache> {
       if (dir.existsSync()) {
         final files = dir.listSync(recursive: true);
         for (var file in files) {
+          if (file.path.contains(_cachedNetworkImageCeHiveName)) {
+            // 跳过 Hive 数据库目录，不计算其大小
+            continue;
+          }
           if (file is File) {
             totalSize += file.lengthSync();
           }
@@ -46,11 +57,21 @@ class _ClearCacheState extends State<ClearCache> {
     return totalSize;
   }
 
-  static void _clearCache(List<String> dirPaths) {
+  static Future<void> _clearCache(List<String> dirPaths) async {
     for (var dirPath in dirPaths) {
       final cacheDir = Directory(dirPath);
       if (cacheDir.existsSync()) {
-        cacheDir.deleteSync(recursive: true);
+        cacheDir.listSync().forEach((item) {
+          if (item is File) {
+            item.deleteSync();
+          } else if (item is Directory) {
+            if (p.basename(item.path) == _cachedNetworkImageCeHiveName) {
+              // 跳过 Hive 数据库目录，不删除
+              return;
+            }
+            item.deleteSync(recursive: true);
+          }
+        });
       }
     }
   }
@@ -72,6 +93,7 @@ class _ClearCacheState extends State<ClearCache> {
       _loadCacheSize(); // 重新加载大小
       Toast.show(message: '缓存已清理');
     } catch (e) {
+      print(e);
       Toast.show(message: '清理缓存失败');
     } finally {
       setState(() => _isClearing = false);

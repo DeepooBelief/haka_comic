@@ -27,22 +27,17 @@ enum ImageQuality {
 }
 
 enum Api {
-  app('https://picaapi.picacomic.com/', '直连'),
-  web('https://picaapi.go2778.com/', '代理');
+  picacomic('https://picaapi.picacomic.com/'),
+  go2778('https://picaapi.go2778.com/');
 
   final String host;
-  final String alias;
 
-  const Api(this.host, this.alias);
+  const Api(this.host);
 
   static Api fromName(String? name) {
-    return Api.values.firstWhere((api) => api.name == name, orElse: () => web);
-  }
-
-  static Api fromAlias(String? alias) {
     return Api.values.firstWhere(
-      (api) => api.alias == alias,
-      orElse: () => web,
+      (api) => api.name == name,
+      orElse: () => go2778,
     );
   }
 }

@@ -31,14 +31,18 @@ class _GestureWrapperState extends State<GestureWrapper>
   bool _isScrollable = true;
 
   void _handlePointerChange(PointerEvent event, bool isAdding) {
-    final int prevPointerCount = _activePointerIds.length;
+    final bool wasScaleEnabledByTouch = _activePointerIds.length >= 2;
     if (isAdding) {
       _activePointerIds.add(event.pointer);
     } else {
       _activePointerIds.remove(event.pointer);
     }
-    final int nextPointerCount = _activePointerIds.length;
-    if (prevPointerCount != nextPointerCount && mounted) {
+    final bool isScaleEnabledByTouch = _activePointerIds.length >= 2;
+    final bool shouldRebuild =
+        !isDesktop &&
+        !context.stateReader.isCtrlPressed &&
+        wasScaleEnabledByTouch != isScaleEnabledByTouch;
+    if (shouldRebuild && mounted) {
       setState(() {});
     }
 
