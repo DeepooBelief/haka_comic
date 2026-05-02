@@ -26,6 +26,10 @@ class RecommendationEngine {
   /// Number of adjacent (less-dominant) categories used as serendipity source.
   static const _serendipityCats = 2;
 
+  /// Upper bound on the API page number we will randomly select from.
+  /// Keeps network cost reasonable while still providing variety.
+  static const _maxFetchPage = 5;
+
   final _rng = Random();
 
   Future<List<Doc>> compute() async {
@@ -214,8 +218,20 @@ class RecommendationEngine {
 
   Future<List<Doc>> _fetchDocs({String? t, String? c, String? a}) async {
     try {
-      final r = await fetchComics(
+      // Always fetch page 1 first to learn the total page count.
+      final probe = await fetchComics(
         ComicsPayload(t: t, c: c, a: a, s: ComicSortType.dd, page: 1),
+      );
+      final totalPages = probe.comics.pages;
+      if (totalPages <= 1) return probe.comics.docs;
+
+      // Pick a random page within [1, min(totalPages, _maxFetchPage)].
+      // If it lands on 1, reuse the already-fetched probe result for free.
+      final page = _rng.nextInt(min(totalPages, _maxFetchPage)) + 1;
+      if (page == 1) return probe.comics.docs;
+
+      final r = await fetchComics(
+        ComicsPayload(t: t, c: c, a: a, s: ComicSortType.dd, page: page),
       );
       return r.comics.docs;
     } catch (_) {
